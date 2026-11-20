@@ -5,7 +5,7 @@ block anywhere in the body:
 
 ```
 <!-- ship: tier=P1 area=test-infra blocked-by=none blocks=#N
-     touches=crates/myapp-core/,Cargo.toml design=settled -->
+     touches=crates/loadtop-core/,Cargo.toml design=settled -->
 ```
 
 Nothing here is required, and an issue with no contract ships as before: the run reads
@@ -39,8 +39,8 @@ Give `touches=` the paths a fix will actually land in, or `*` when you genuinely
 say. `*` is honest; a narrow guess is not, because the next run will trust it. Two
 issues whose `touches=` overlap, or either of which says `*`, never share a parallel
 batch; neither do two that both edit a file every change meets, such as `Cargo.toml`, a
-workflow, the subcommand enum in `crates/myapp/src/main.rs`, or core's re-exports in
-`crates/myapp-core/src/lib.rs` (a `CHANGELOG.md` entry is not a collision).
+workflow, the subcommand enum in `crates/loadtop/src/main.rs`, or core's re-exports in
+`crates/loadtop-core/src/lib.rs` (a `CHANGELOG.md` entry is not a collision).
 
 ## When a held design is settled
 

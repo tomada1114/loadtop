@@ -65,7 +65,7 @@ elsewhere, including this skill. Detail, traps, and the judgment each needs are 
   through that crate's `[lints] workspace = true`, so a new crate without it compiles
   with no lints at all. A crate-local `clippy.toml` replaces the root one entirely, so
   core's repeats the root's two settings.
-- **Core's bans** (`crates/myapp-core/clippy.toml`) and core's forbidden-crate lists
+- **Core's bans** (`crates/loadtop-core/clippy.toml`) and core's forbidden-crate lists
   (`deny.toml`'s `wrappers`, the closure check, `AGENTS.md`) change together; adding a
   ban strengthens, removing one weakens.
 - **rustfmt**: an option change reformats the tree; land the option and the `just fmt`
@@ -134,7 +134,7 @@ crate has no look-around, so a rule that would need one says it another way
 (when it fires, whom it binds, what it holds), then the gaps and the reasons they stay open: the
 `#[ignore]`d tests only a human runs, `--no-verify` and the hook's other bypasses, a
 ruleset that may not be applied, and a new recipe or test that takes over the Mac or a
-terminal (`myapp tui`, raw mode, the alternate screen). A gate
+terminal (`loadtop tui`, raw mode, the alternate screen). A gate
 proposed to close any gap is a real gate change and belongs in its pull request as one,
 with its row and its gap there updated or removed.
 

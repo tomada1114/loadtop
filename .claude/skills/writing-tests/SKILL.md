@@ -33,14 +33,14 @@ Worked examples of every pattern below are in
   subcommand.
 - Build a case's data with a helper that takes what varies, never a shared mutable
   fixture another test can change. In the sample, `service_holding(2)` in
-  `crates/myapp-core/tests/counter_screen.rs` builds a service whose store holds 2.
+  `crates/loadtop-core/tests/counter_screen.rs` builds a service whose store holds 2.
 
 ## Test through an interface
 
 Drive the code the way its caller does, so a refactor that keeps the behavior keeps the
 test green:
 
-- **Core's public API** from `crates/myapp-core/tests/`, over fakes; a private helper
+- **Core's public API** from `crates/loadtop-core/tests/`, over fakes; a private helper
   from the inline `#[cfg(test)] mod tests` beside it.
 - **A TUI screen's behavior** through core's `…Screen::update`, with actions and keys
   built as values; the sample's `after_keys` folds a list of `ScreenKey`s through
@@ -49,9 +49,9 @@ test green:
   `KeyEvent::new_with_kind` and asserting the `ScreenKey` it becomes (`tui/mod.rs`).
 - **A view** by drawing it into ratatui's `TestBackend` and comparing every cell
   (`tui/view.rs`; `building-tuis` › "Testing without a terminal").
-- **The `myapp` binary** as a built executable (`env!("CARGO_BIN_EXE_myapp")`) with
+- **The `loadtop` binary** as a built executable (`env!("CARGO_BIN_EXE_loadtop")`) with
   `HOME` pointed at a temporary directory and the `XDG_*` variables removed
-  (`crates/myapp/tests/cli.rs`): its contract is arguments in, exit code, stdout, and
+  (`crates/loadtop/tests/cli.rs`): its contract is arguments in, exit code, stdout, and
   stderr out.
 - **A `cargo xtask` task** by calling its `main` through `test_support::Fake`, and **a
   skill's script** by calling its `main()` with a fake `gh` on PATH
@@ -64,9 +64,9 @@ shape, not that the test needs an exception.
 
 When a port has a fake and a real adapter, the behavior both owe is written once, as
 `pub fn <port>_contract(make: impl FnMut() -> Box<dyn Port>)` in
-`crates/myapp-test-support/`, and called once per implementation:
-`crates/myapp-core/tests/contracts.rs` runs it against the fake and
-`crates/myapp-platform/tests/contracts.rs` against the real adapter. That is what stops
+`crates/loadtop-test-support/`, and called once per implementation:
+`crates/loadtop-core/tests/contracts.rs` runs it against the fake and
+`crates/loadtop-platform/tests/contracts.rs` against the real adapter. That is what stops
 the fake drifting from the real thing.
 
 - Every clause the contract asserts is one the port's `///` promises; add the promise
@@ -78,7 +78,7 @@ the fake drifting from the real thing.
 - A new implementation adds a call; a quirk of one implementation (its file format, how
   it reports a damaged file) gets its own test file beside it. In the sample,
   `counter_store_contract` holds what every store does, and
-  `crates/myapp-platform/tests/json_file_counter_store.rs` what only the JSON file does.
+  `crates/loadtop-platform/tests/json_file_counter_store.rs` what only the JSON file does.
 
 ## Asserting errors and output
 
@@ -90,7 +90,7 @@ the fake drifting from the real thing.
   `wording.rs`'s tests, and as the whole `error: …` line in `cli.rs` and on the TUI's
   error line, because there the wording is the contract a user reads. The other
   exception is a test proving a message carries no user data
-  (`error_messages_carry_no_data` in `crates/myapp-core/tests/serialization.rs`).
+  (`error_messages_carry_no_data` in `crates/loadtop-core/tests/serialization.rs`).
 - From the binary, assert the exit code, stdout exactly (`"0\n"`, not "contains 0"),
   and the last stderr line, since a debug build echoes log lines to stderr first.
 - After a rejected change, assert that nothing changed as well: the store still holds
@@ -104,7 +104,7 @@ what went in). Never compute it with the code under test or re-derive it with th
 implementation's formula. In the sample, `assert_eq!(counter.value(), 99)` catches a bug
 that `assert_eq!(counter.value(), (98 + 1).min(tuning.max))` shares with the code.
 JSON that reaches disk or a script is pinned with a literal `json!({ … })`, independent
-of serde's derive (`crates/myapp-core/tests/serialization.rs`), and a screen with its
+of serde's derive (`crates/loadtop-core/tests/serialization.rs`), and a screen with its
 lines written out, border included.
 
 ## Edge cases to sweep
@@ -120,7 +120,7 @@ small for the layout.
 
 ## Fakes, not mocks
 
-A port is replaced in a test by its fake from `crates/myapp-test-support`, never by a
+A port is replaced in a test by its fake from `crates/loadtop-test-support`, never by a
 mocking framework. A fake is a working implementation, configured per case, that
 records what happened in a plain value the test reads afterwards. In the sample,
 `InMemoryCounterStore::holding(…)` and `FailingCounterStore::save_fails(…)` configure
@@ -144,7 +144,7 @@ it.
   machine's time zone, locale, or CPU count. nextest runs each test in its own process
   (https://nexte.st/docs/design/how-it-works/, checked 2026-09-29); a test that
   installs the process-wide `tracing` subscriber relies on that
-  (`crates/myapp-platform/tests/logging.rs`). A flaky test is fixed, never retried or
+  (`crates/loadtop-platform/tests/logging.rs`). A flaky test is fixed, never retried or
   skipped.
 - No test opens a real terminal, enters raw mode, or reads a key: a check never takes
   over the developer's terminal (`building-tuis`). What the runner does not clean up (a
@@ -154,7 +154,7 @@ it.
 
 - `unwrap` in a helper function under `tests/` that is not itself a `#[test]`: clippy
   does not count it as test code, so it fails `just lint`; match and panic with context
-  instead (`output` in `crates/myapp/tests/cli.rs`).
+  instead (`output` in `crates/loadtop/tests/cli.rs`).
 - `is_ok()`, `is_some()`, or `contains` where a specific value is checkable.
 - Testing that a dependency works (that clap parses, that ratatui draws a border)
   rather than how this code uses it.

@@ -39,13 +39,13 @@ The first `cargo` command installs the Rust toolchain `rust-toolchain.toml` pins
 A Claude Code cloud session (claude.ai/code) runs on an Ubuntu VM that starts without
 `just`, `mise`, or lefthook, and its environment carries `CLAUDE_CODE_REMOTE=true`
 ([cloud environments](https://code.claude.com/docs/en/cloud-environments), checked
-2026-10-07). Two files under `.claude/cloud/` provision it instead of `just install`:
+2026-10-07). The shared Rust environment and `.claude/cloud/` provision it instead of `just install`:
 
-- `environment-setup.sh` is the cloud environment's setup script, pasted as-is into the
-  environment's settings on claude.ai/code. It installs a checksum-verified mise and
-  rustup, puts mise's shims and `~/.cargo/bin` on `PATH`, and runs each cloned
-  repository's `.claude/cloud/provision.sh setup` within its time budget. It names no
-  repository, so every repository cut from the template shares one environment.
+- The shared Rust environment on claude.ai/code has a setup script that installs a
+  checksum-verified mise and rustup, puts mise's shims and `~/.cargo/bin` on `PATH`,
+  and runs each cloned repository's `.claude/cloud/provision.sh setup` within its time
+  budget. It names no repository, so this app needs no environment change: start its
+  sessions in that environment.
 - `provision.sh` provisions this checkout. `setup` installs the Debian packages
   `apt-packages.txt` lists, runs `mise install --locked` against `mise.lock`, installs
   the `rust-toolchain.toml` toolchain, fetches the crates, installs lefthook's hook, and
@@ -72,7 +72,7 @@ by recipe there (`just lint`, `just test-core`, `just test-xtask`, `just test-pl
 `just check-harness`) rather than as one command.
 
 No human is at the VM. A step that needs one (`just test-local`, `just logs-follow`,
-`just install-cli`, a `myapp tui` run) is never run in a cloud session, even when asked:
+`just install-cli`, a `loadtop tui` run) is never run in a cloud session, even when asked:
 the agent leaves it unrun and names it in the pull request as needing a local run.
 
 ## Everyday commands
@@ -94,24 +94,24 @@ just logs        # the newest log file's last lines
 ```
 
 On macOS the tool keeps its data in
-`~/Library/Application Support/com.example.myapp/counter.json` and its logs in
-`~/Library/Logs/com.example.myapp/`; on Linux, in `$XDG_DATA_HOME/myapp/counter.json`
-(default `~/.local/share/myapp/`) and `$XDG_STATE_HOME/myapp/logs/` (default
-`~/.local/state/myapp/logs/`). Deleting `counter.json` starts the counter over.
+`~/Library/Application Support/io.github.tomada1114.loadtop/counter.json` and its logs in
+`~/Library/Logs/io.github.tomada1114.loadtop/`; on Linux, in `$XDG_DATA_HOME/loadtop/counter.json`
+(default `~/.local/share/loadtop/`) and `$XDG_STATE_HOME/loadtop/logs/` (default
+`~/.local/state/loadtop/logs/`). Deleting `counter.json` starts the counter over.
 
-The `myapp` binary reads and writes that file:
+The `loadtop` binary reads and writes that file:
 
 ```bash
-cargo run --locked -p myapp -- counter show
-cargo run --locked -p myapp -- counter increment
-cargo run --locked -p myapp -- tui   # full screen: +/Up, -/Down, r to reset, q to quit
+cargo run --locked -p loadtop -- counter show
+cargo run --locked -p loadtop -- counter increment
+cargo run --locked -p loadtop -- tui   # full screen: +/Up, -/Down, r to reset, q to quit
 ```
 
 `tui` takes over the terminal you run it from until you quit, and restores it on the
 way out. It is yours to run: no check and no agent starts it.
 
-To run `myapp` from any directory, `just install-cli` installs it into `~/.cargo/bin`
-(`cargo install --locked --path crates/myapp`). It writes outside the checkout, so it is
+To run `loadtop` from any directory, `just install-cli` installs it into `~/.cargo/bin`
+(`cargo install --locked --path crates/loadtop`). It writes outside the checkout, so it is
 a human's recipe that no check and no agent runs unasked. There is no other
 distribution: no release artifacts, no installer.
 
@@ -132,7 +132,7 @@ checklist below is every file that holds the sample. Work through it after the
 bootstrap has run (the paths then carry your app's name), in the pull request that adds
 your first real core module, so the coverage floor always has code to measure.
 
-**Core** (`crates/myapp-core`):
+**Core** (`crates/loadtop-core`):
 
 - [ ] `src/counter/` (`Counter`, `CounterService`, `CounterView`, `CounterError`,
       `StoredCounter`, `StorageError`, `Tuning`, the `CounterStore` port, and the
@@ -147,17 +147,17 @@ your first real core module, so the coverage floor always has code to measure.
 
 **Adapters and fakes**:
 
-- [ ] `crates/myapp-platform/src/counter_store.rs` (`JsonFileCounterStore`), its `mod`
+- [ ] `crates/loadtop-platform/src/counter_store.rs` (`JsonFileCounterStore`), its `mod`
       and re-export in `src/lib.rs`, `COUNTER_FILE_NAME` and `counter_file` in
       `src/paths.rs` (drop only the `counter_file` assertion from
       `macos_selects_the_macos_directories`, which also covers the data and log
       directories), `tests/json_file_counter_store.rs`, and the counter-store test in
       `tests/contracts.rs`
-- [ ] `crates/myapp-test-support/src/counter_store.rs` (`InMemoryCounterStore`,
+- [ ] `crates/loadtop-test-support/src/counter_store.rs` (`InMemoryCounterStore`,
       `FailingCounterStore`, `counter_store_contract`) and its `mod` and re-export in
       `src/lib.rs`
 
-**The binary** (`crates/myapp`):
+**The binary** (`crates/loadtop`):
 
 - [ ] `src/main.rs` — the `counter` subcommand and its handler (keep `--help`,
       `--version`, `compose`, and the exit-code convention), its wording in
@@ -172,7 +172,7 @@ your first real core module, so the coverage floor always has code to measure.
       `just test-fast increment` example
 - [ ] `AGENTS.md` — the `just test-fast increment` example
 - [ ] `CONTRIBUTING.md`, the `justfile`'s `test-fast` comment, and this page — the
-      `just test-fast increment` examples, "Seeing the app"'s `counter.json` and `myapp`
+      `just test-fast increment` examples, "Seeing the app"'s `counter.json` and `loadtop`
       commands, and this checklist
 - [ ] `.github/PULL_REQUEST_TEMPLATE.md` — the counter in the example title
 - [ ] The skills under `.claude/skills/` that give the counter as an example —

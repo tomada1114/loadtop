@@ -25,12 +25,12 @@ is a legitimate outcome of this skill, not a step skipped.
 
 A reader here can observe: what the tool does when run, the `just` recipes and what
 they run, the setup steps and pinned tools, what a gate accepts or rejects, how the
-template becomes an app (`just bootstrap`), how the tool is installed, and
+tool is installed, and
 everything `AGENTS.md` › "What is contract and what is private" lists. That section is
 the one list of what is contract; read it there rather than from a copy.
 
-- `README.md` changes when the first ten minutes with a checkout change (the Quickstart,
-  what "Using This Template" asks), or when the layout or a link it gives moves.
+- `README.md` changes when the first ten minutes with a checkout change (the Quickstart),
+  or when the layout or a link it gives moves.
 - `CONTRIBUTING.md` changes when setup, the toolchain, the commands behind a recipe
   ("Without Just"), or the pull request process changes.
 - Neither changes for a refactor, a test, a rule `AGENTS.md` owns, or an edit to a skill.
@@ -63,7 +63,7 @@ another's content: a copy is the half that goes stale.
 
 | Surface | Its one job |
 |---|---|
-| `README.md` | The tour: what the template is, Quickstart, Using This Template, the layout, links onward |
+| `README.md` | The tour: what the app is, Quickstart, the layout, links onward |
 | `AGENTS.md` | The agent-facing guide: Quick Reference, "Validating a change", Architecture, Skills and Rules tables, "Security and human approval", the "Enforcement layers" summary, Review Checklist; at most 20,000 bytes outside `## Product`, so file-scoped text goes to a rule and task-scoped text to a skill |
 | `CONTRIBUTING.md` | Prerequisites, the workflow and its commands without Just, where a change goes, the pull request process, commit messages, the changelog policy |
 | `CHANGELOG.md` | The human-curated record of user-visible changes (Keep a Changelog) |
@@ -119,25 +119,6 @@ description.
   commit.
 - A subcommand's and a flag's `///` is also its `--help` text (clap's derive reads it),
   so it is written for the person running the tool (`designing-clis`).
-
-## Template-only material
-
-The bootstrap removes every `<!-- template-only -->` … `<!-- /template-only -->` block,
-so an app never inherits text about the template. Text only a template reader needs (how
-to use the template, why the bootstrap exists) goes inside a block, or into
-`starting-an-app`' `references/bootstrap.md`, which the bootstrap deletes; text an app
-keeps (a skill's design reasons, the install steps) goes outside, and never links into
-that reference. A sentence outside a block is worded to hold in an app too ("the
-counter is a sample to replace", not "the template ships a counter"), or, where it
-cannot, rewritten for the app by an entry in `TEXT_EDITS` in `xtask/src/bootstrap.rs`,
-in the same change.
-
-Only the files `MARKER_FILES` in `xtask/src/bootstrap.rs` lists have their blocks
-removed. A block in any other file adds that file to the list in the same change, or its
-marker lines survive into the app and `just verify-bootstrap` (CI's Template Bootstrap
-Smoke job) fails with `ERR_VERIFY_BOOTSTRAP_MARKER`. It fails with
-`ERR_VERIFY_BOOTSTRAP_TEMPLATE_TEXT` when the app still names README's template-only
-section or what the template itself ships or its own reasoning.
 
 ## What checks a document, and what does not
 

@@ -8,21 +8,21 @@ runs is `running-the-app`.
 
 ## The shape
 
-- The binary and `myapp-platform` log through the `tracing` macros; `myapp-core` has no
+- The binary and `loadtop-platform` log through the `tracing` macros; `loadtop-core` has no
   `tracing` dependency and logs nothing. `tracing` gives one logging API across every
   crate that logs.
-- Only the binary installs a subscriber (`myapp_platform::init_logging`, which
+- Only the binary installs a subscriber (`loadtop_platform::init_logging`, which
   `compose` calls).
-- Files go to `~/Library/Logs/<bundle id>/` on macOS and `$XDG_STATE_HOME/myapp/logs/`
-  (default `~/.local/state/myapp/logs/`) on Linux (`myapp_platform::log_dir`), as
-  `myapp.YYYY-MM-DD.log`, one per day, and the newest 14 are kept. Retention counts
+- Files go to `~/Library/Logs/<bundle id>/` on macOS and `$XDG_STATE_HOME/loadtop/logs/`
+  (default `~/.local/state/loadtop/logs/`) on Linux (`loadtop_platform::log_dir`), as
+  `loadtop.YYYY-MM-DD.log`, one per day, and the newest 14 are kept. Retention counts
   every file in that directory whose name starts with the writer's prefix, so a second
   writer gets its own directory rather than sharing this one.
 - The writer is synchronous: the volume is low, and an early `process::exit` would
   drop a background writer's last lines.
 - A debug build of a plain subcommand also copies each line to stderr (`compose(true)`);
   a release build writes the file only.
-- While `myapp tui` owns the terminal it logs to the file only: a line on stdout or
+- While `loadtop tui` owns the terminal it logs to the file only: a line on stdout or
   stderr would corrupt the frame (`building-tuis`).
 - Logging is best effort. When the directory cannot be used, the binary prints a
   `warning:` line on stderr and still runs the action.

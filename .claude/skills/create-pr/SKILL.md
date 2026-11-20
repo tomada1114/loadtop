@@ -73,12 +73,12 @@ again.
 Read `git diff main..HEAD` for these, each of which feeds a checklist item:
 
 - **Where the logic landed.** A decision (anything that branches, clamps, or formats)
-  belongs in `crates/myapp-core`, with tests, where the coverage floor sees it. A
-  decision found in `crates/myapp-platform/` or `crates/myapp/` (a subcommand handler,
-  the TUI's loop or view) leaves "New logic lives in `myapp-core`" unchecked.
+  belongs in `crates/loadtop-core`, with tests, where the coverage floor sees it. A
+  decision found in `crates/loadtop-platform/` or `crates/loadtop/` (a subcommand handler,
+  the TUI's loop or view) leaves "New logic lives in `loadtop-core`" unchecked.
 - **The command line.** A subcommand, flag, output, or exit code that changed without
-  its test in `crates/myapp/tests/cli.rs`, or an error sentence written anywhere but
-  `crates/myapp/src/wording.rs` (`designing-clis`, `designing-errors`).
+  its test in `crates/loadtop/tests/cli.rs`, or an error sentence written anywhere but
+  `crates/loadtop/src/wording.rs` (`designing-clis`, `designing-errors`).
 - **A contract.** Core's public API, the bundle identifier or the XDG directory name, an
   on-disk format, or the command line: subcommands, flags, what goes to stdout and to
   stderr, and the exit codes (`AGENTS.md` › "What is contract and what is private"). A
@@ -88,14 +88,14 @@ Read `git diff main..HEAD` for these, each of which feeds a checklist item:
   cloud session, where no human is at the VM, the request is written into the Test Plan
   as needing a local run instead of asked in chat; the pull request still waits, unmerged,
   for the output.
-  - A change to an adapter in `crates/myapp-platform/` that has an
+  - A change to an adapter in `crates/loadtop-platform/` that has an
     `#[ignore = "local machine: ..."]` test needs `just test-local` output. It is a
     human's recipe, never run by an agent; its checklist item stays unchecked until the
     output is pasted.
   - A change only a real terminal shows (the TUI's terminal loop, how a screen looks, a
     key, a resize, the terminal restored after an error) needs the human's run of
-    `myapp tui` and what they saw; its checklist item stays unchecked until the Test
-    Plan says so. An agent never runs `myapp tui`, since it takes over the terminal; the
+    `loadtop tui` and what they saw; its checklist item stays unchecked until the Test
+    Plan says so. An agent never runs `loadtop tui`, since it takes over the terminal; the
     commands and keys to hand the human are in `running-the-app`.
 - **A new dependency** (a crate, in any member) needs its reason in the body for the
   human's sign-off (`.claude/rules/project.md` › "Dependency Policy").

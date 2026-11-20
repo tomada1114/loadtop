@@ -9,9 +9,9 @@ one (`AGENTS.md` › "Before changing the architecture").
 
 A single crate cannot keep OS code out of the logic: nothing would stop a rule from
 reading a file or the clock, and its tests would link the real adapters. So the
-repository root is a virtual workspace: `crates/myapp-core` holds the rules and state,
-`crates/myapp-platform` the OS adapters, `crates/myapp-test-support` the fakes, and
-`crates/myapp` the binary, the only place the adapters are wired to core. The split
+repository root is a virtual workspace: `crates/loadtop-core` holds the rules and state,
+`crates/loadtop-platform` the OS adapters, `crates/loadtop-test-support` the fakes, and
+`crates/loadtop` the binary, the only place the adapters are wired to core. The split
 makes the dependency direction reviewable and lets core build and test on Linux with no
 operating-system code at all.
 
@@ -23,8 +23,8 @@ operating-system code at all.
 ## Ports and adapters, with synchronous ports
 
 Core declares each thing it needs from outside the process — storage, time, a model
-provider — as a `Send + Sync` trait over types it owns. `myapp-platform` implements it
-for real, `myapp-test-support` as a fake, and the binary picks the real one. Ports are
+provider — as a `Send + Sync` trait over types it owns. `loadtop-platform` implements it
+for real, `loadtop-test-support` as a fake, and the binary picks the real one. Ports are
 plain synchronous methods, so a reader new to Rust meets no async in core and core never
 depends on a runtime. Errors are typed variants the binary turns into words and an exit
 code, never sentences from core (`designing-errors`). One contract function per port
@@ -35,10 +35,10 @@ thing without a test failing.
 
 A rule that lives only in prose drifts. Core's `Cargo.toml` names no OS crate, so core
 cannot compile a call into one; a harness check reads `cargo metadata` and fails if
-core's dependency closure ever gains a macOS binding crate or `myapp-platform`; and
-`cargo deny`'s `wrappers` rule allows `myapp-platform` as a direct dependency of the
+core's dependency closure ever gains a macOS binding crate or `loadtop-platform`; and
+`cargo deny`'s `wrappers` rule allows `loadtop-platform` as a direct dependency of the
 binary only. Three independent mechanisms mean removing one leaves the others. clippy,
-configured in `crates/myapp-core/clippy.toml`, adds the call-level layer, so I/O, time,
+configured in `crates/loadtop-core/clippy.toml`, adds the call-level layer, so I/O, time,
 and the environment arrive only through ports or arguments.
 
 No gate stops core from naming clap, ratatui, or crossterm; review holds that line, so

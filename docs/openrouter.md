@@ -5,7 +5,7 @@ but neither the OpenRouter HTTP dependencies nor the `llm` command. Enable the
 `openrouter` Cargo feature when an app needs them:
 
 ```bash
-cargo run --locked -p myapp --features openrouter -- llm ask "Explain Rust ownership in one sentence."
+cargo run --locked -p loadtop --features openrouter -- llm ask "Explain Rust ownership in one sentence."
 ```
 
 Only `llm ask` contacts a model. Counter commands, the counter TUI, `--help`,
@@ -47,7 +47,7 @@ writes it, so it is no part of the on-disk contract.
 
 ## Model choices in source
 
-`crates/myapp/src/llm.rs` contains the model identifier, reasoning effort, and token
+`crates/loadtop/src/llm.rs` contains the model identifier, reasoning effort, and token
 budget: `openai/gpt-6-luna`, `ReasoningEffort::Max`, and `32_768` generated tokens.
 Change those constants to choose another supported model. Model settings are not read
 from environment variables.
@@ -61,8 +61,8 @@ as truncated instead of returning partial text as success. See OpenRouter's
 
 ## Reusing the adapter
 
-`TextGenerator` is a synchronous `Send + Sync` port in `myapp-core`.
-`OpenRouterClient` in `myapp-platform` implements it, behind the `openrouter` feature.
+`TextGenerator` is a synchronous `Send + Sync` port in `loadtop-core`.
+`OpenRouterClient` in `loadtop-platform` implements it, behind the `openrouter` feature.
 `GenerationService` validates the prompt and settings, invokes the port once, rejects
 an empty answer, and returns a `GenerationView` for either front end. For example,
 composition code can construct a service without looking up credentials or contacting
@@ -70,8 +70,8 @@ the network:
 
 ```rust
 use std::sync::Arc;
-use myapp_core::{GenerationService, GenerationSettings, ReasoningEffort};
-use myapp_platform::{OpenRouterClient, OpenRouterTuning};
+use loadtop_core::{GenerationService, GenerationSettings, ReasoningEffort};
+use loadtop_platform::{OpenRouterClient, OpenRouterTuning};
 
 let generator = OpenRouterClient::from_environment(OpenRouterTuning::default())?;
 let service = GenerationService::new(Arc::new(generator), GenerationSettings {
@@ -89,7 +89,7 @@ back to the screen as an action; keep the terminal event loop responsive and use
 on an async runtime. The sample counter TUI remains a counter.
 
 `OpenRouterClient::new` accepts a key supplied directly by composition code instead.
-Tests inject `StubTextGenerator` from the dev-only `myapp-test-support`; its
+Tests inject `StubTextGenerator` from the dev-only `loadtop-test-support`; its
 `text_generator_contract` also runs against the adapter using a local HTTP fixture.
 
 ## Bounds and failures

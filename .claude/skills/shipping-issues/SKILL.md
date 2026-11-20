@@ -59,7 +59,7 @@ same turn, with no "shall I merge?". The only pauses are the
 - **No local baseline and no full `just check` before the PR**: CI is the gate every PR
   merges through; run the narrowest check that can fail (`AGENTS.md` › "Validating a
   change").
-- **Never take over the machine.** No step runs `myapp tui` or a human's recipe
+- **Never take over the machine.** No step runs `loadtop tui` or a human's recipe
   (`AGENTS.md` › "Never taking over the machine").
 
 ## Workflow
@@ -141,7 +141,7 @@ A test deleted, skipped, or weakened to get a `PASS` is a failed repair.
 ### 7. Merge and confirm
 
 A PR whose change needs evidence only a human can produce (`just test-local` output, a
-run of `myapp tui`) is held, open, and named in the report; it is not merged.
+run of `loadtop tui`) is held, open, and named in the report; it is not merged.
 Otherwise, in the same turn as the `PASS`: read the PR once more (`closes: true`, base
 the default branch), [squash-merge pinned to the head CI passed](references/rest-calls.md#the-merge),
 and read the issue. Still open after 10 s →

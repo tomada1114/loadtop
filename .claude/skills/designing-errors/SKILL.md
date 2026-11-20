@@ -30,9 +30,9 @@ names the variant. In the sample, that is `Err(CounterError::AtMaximum)`.
 
 ## Where an error type lives, and its shape
 
-- Declare every error a caller can observe in `myapp-core`, beside the module or port
-  that returns it. The binary, the TUI, and a fake in `myapp-test-support` all name it,
-  and core never depends on `myapp-platform`, so an error declared in an adapter could
+- Declare every error a caller can observe in `loadtop-core`, beside the module or port
+  that returns it. The binary, the TUI, and a fake in `loadtop-test-support` all name it,
+  and core never depends on `loadtop-platform`, so an error declared in an adapter could
   not be named by core or by a fake.
 - One enum per failure domain, deriving `thiserror::Error`. `thiserror` writes the
   `Display` and `std::error::Error` impls from the `#[error]` attributes, so an error
@@ -59,7 +59,7 @@ absence into an error makes every caller handle a failure that is not one.
 ## Leaving core: wording, an exit code, and maybe a code
 
 Core never builds a user-facing sentence. The binary turns a variant into words in one
-module, `crates/myapp/src/wording.rs`, with one function per error enum that matches
+module, `crates/loadtop/src/wording.rs`, with one function per error enum that matches
 every variant and no `_ =>` arm (`counter_error` and `storage_error` in the sample).
 `main.rs` denies `clippy::wildcard_enum_match_arm`, so a new core variant fails to
 compile until someone decides what the user is told.
@@ -80,7 +80,7 @@ compile until someone decides what the user is told.
   `tag = "code"` puts the variant name in a `code` field and flattens the payload beside
   it (`{ "code": "storage", "kind": "corrupt" }`); serde calls this the internally
   tagged representation (<https://serde.rs/enum-representations.html>, checked
-  2026-09-30). `crates/myapp-core/tests/serialization.rs` pins each code with literal
+  2026-09-30). `crates/loadtop-core/tests/serialization.rs` pins each code with literal
   JSON. An error that never leaves the process (`StorageError`, `LoggingError`) derives
   no `Serialize`.
 
@@ -105,7 +105,7 @@ bug report, and a pull request.
 The adapter translates and decides nothing (`AGENTS.md` › "Architecture"). Mapping an
 OS failure to a core kind is translation; what the tool then does is core's decision.
 
-- Convert at the call site in `myapp-platform`, into the error the port declares.
+- Convert at the call site in `loadtop-platform`, into the error the port declares.
   Nothing OS-typed crosses the port. In the sample, `JsonFileCounterStore` maps
   `io::ErrorKind::NotFound` on a read to `Ok(None)` (absence), any other I/O error to
   `StorageErrorKind::Unavailable`, and unreadable JSON or an unknown format version to
@@ -114,7 +114,7 @@ OS failure to a core kind is translation; what the tool then does is core's deci
   Keep a numeric OS status (an exit code, an `errno`) only when a log needs it, as an
   integer field, never the OS's message text, which can quote a path.
 - The test for the mapping is the adapter's own test against the real thing
-  (`crates/myapp-platform/tests/`); the test for the decision is a core test with a
+  (`crates/loadtop-platform/tests/`); the test for the decision is a core test with a
   fake that fails on demand (`FailingCounterStore`).
 
 ## No panic in a subcommand or the TUI
@@ -137,7 +137,7 @@ So:
   (`building-tuis`); it is the last line of defense, not a reason to panic.
 - An error is handled or returned, never dropped. `let _ = fallible();` carries a
   comment saying why the failure does not matter (`let _ = leave();` inside the panic
-  hook, `remove_stale_temps` in `crates/myapp-platform/src/counter_store.rs`).
+  hook, `remove_stale_temps` in `crates/loadtop-platform/src/counter_store.rs`).
 
 `anyhow` is not used: every crate here is a library or a composition root with typed
 errors, and the binary maps each one to its own wording and exit code. Adding it is a
@@ -165,9 +165,9 @@ name with `#[serde(rename = "…")]` when only the Rust name should change. In o
 request:
 
 1. the enum in core, with the core test that reaches the new variant;
-2. its arm in `crates/myapp/src/wording.rs`, and that module's test for its sentence;
-3. a test in `crates/myapp/tests/cli.rs` for each failure a user can now reach, and a
+2. its arm in `crates/loadtop/src/wording.rs`, and that module's test for its sentence;
+3. a test in `crates/loadtop/tests/cli.rs` for each failure a user can now reach, and a
    `TestBackend` test when the TUI shows it;
-4. the literal-JSON test in `crates/myapp-core/tests/serialization.rs`, when the enum
+4. the literal-JSON test in `crates/loadtop-core/tests/serialization.rs`, when the enum
    serializes;
 5. a `CHANGELOG.md` entry when a user sees the difference.

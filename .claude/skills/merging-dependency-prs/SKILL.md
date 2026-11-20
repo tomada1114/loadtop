@@ -83,7 +83,7 @@ code, and the migrations below. A failing PR is diagnosed before it is judged:
 
 ratatui (`0.30` in the root `Cargo.toml`) and crossterm, reached only as
 `ratatui::crossterm`, are pre-1.0: a minor of either may break the API the TUI in
-`crates/myapp/src/tui/` uses. A clap major does the same to every subcommand.
+`crates/loadtop/src/tui/` uses. A clap major does the same to every subcommand.
 
 - **A ratatui or crossterm minor lands alone** on a migration branch (Step 4c), never in
   its `cargo-minor-and-patch` group or a combined branch; the group's other bumps take
@@ -91,7 +91,7 @@ ratatui (`0.30` in the root `Cargo.toml`) and crossterm, reached only as
 - **The `TestBackend` tests are the evidence**: they draw each view into ratatui's
   in-memory backend and assert its cells, so an upstream rendering change fails a test.
   What none sees (raw mode, the alternate screen, key events, the terminal restore) goes
-  in the report for the human to try with `myapp tui`; an agent never runs it.
+  in the report for the human to try with `loadtop tui`; an agent never runs it.
 - **A clap major, or ratatui 1.0, is a design change** (`AGENTS.md` › "Before changing
   the architecture"): hold the PR and propose the migration, its guide linked; once a
   human approves, it lands alone as in Step 4c, with the text it makes stale rewritten.
@@ -205,6 +205,6 @@ a bump.
 
 Merged PRs; the combined and migration PRs and what each superseded; held PRs with the
 reason each; any migration proposed or issue filed; anything only a real terminal shows, for
-the human to check with `myapp tui`; any CI failure with its real error line, not a
+the human to check with `loadtop tui`; any CI failure with its real error line, not a
 summary. A partly completed run says so. An unrelated problem noticed on the way goes in
 the report, never into a combined or migration branch.

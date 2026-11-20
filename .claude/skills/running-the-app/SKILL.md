@@ -18,7 +18,7 @@ contract (`designing-clis`); the terminal loop (`building-tuis`); an OS integrat
 behind a port (`integrating-system-apis`); the pull request itself (`create-pr`).
 
 Running the tool proves wiring, not logic. Every decision is core's and gated by
-`just test`; the subcommands are tested end to end by `crates/myapp/tests/cli.rs`, and
+`just test`; the subcommands are tested end to end by `crates/loadtop/tests/cli.rs`, and
 the TUI's screen and view without a terminal. What no gate sees is the real terminal
 loop (raw mode, the alternate screen, the restore) and anything only a person judges.
 That is what running is for, and its result is evidence in the pull request, never a
@@ -33,15 +33,15 @@ tool is missing, report the command for the human to run, as `just install` does
 the Xcode Command Line Tools.
 
 ```bash
-just test-platform   # platform adapters and the myapp binary against the real OS
+just test-platform   # platform adapters and the loadtop binary against the real OS
 just logs            # the newest log file's last 50 lines, then exit
 ```
 
 - **A read-only subcommand** runs straight from the checkout:
 
   ```bash
-  cargo run --locked -p myapp -- --version
-  cargo run --locked -p myapp -- counter show
+  cargo run --locked -p loadtop -- --version
+  cargo run --locked -p loadtop -- counter show
   ```
 
   It reads the developer's own data and writes to their log directory: logging starts
@@ -60,22 +60,22 @@ just logs            # the newest log file's last 50 lines, then exit
   and `HOME="$scratch" just logs` stopped on mise's config). In the sample:
 
   ```bash
-  cargo build --locked -p myapp
+  cargo build --locked -p loadtop
   scratch="$(mktemp -d)"
-  HOME="$scratch" target/debug/myapp counter increment
-  HOME="$scratch" target/debug/myapp counter show
+  HOME="$scratch" target/debug/loadtop counter increment
+  HOME="$scratch" target/debug/loadtop counter show
   find "$scratch" -type f    # the store and the one log file, nothing else
   ```
 
-  `home_dir()` in `crates/myapp-platform/src/paths.rs` reads `HOME`, and every data and
+  `home_dir()` in `crates/loadtop-platform/src/paths.rs` reads `HOME`, and every data and
   log path hangs off it (observed: the run above wrote only under the scratch
   directory, 2026-10-01). On Linux, also unset `XDG_DATA_HOME` and `XDG_STATE_HOME`
   for the run, which would otherwise move the files out of the scratch directory.
   Read that run's log with `tail` on the file `find` listed, then remove the scratch
   directory.
-- **`just logs`** prints the tail of the newest `myapp.YYYY-MM-DD.log` (dated in UTC)
-  in the log directory `myapp_platform::log_dir` picks: `~/Library/Logs/<bundle id>/`
-  on macOS, `$XDG_STATE_HOME/myapp/logs` (default `~/.local/state/myapp/logs`) on
+- **`just logs`** prints the tail of the newest `loadtop.YYYY-MM-DD.log` (dated in UTC)
+  in the log directory `loadtop_platform::log_dir` picks: `~/Library/Logs/<bundle id>/`
+  on macOS, `$XDG_STATE_HOME/loadtop/logs` (default `~/.local/state/loadtop/logs`) on
   Linux. A log line is often the cheapest observable for a wiring change: add the
   `tracing` event in the binary, run, then read it.
 
@@ -83,14 +83,14 @@ just logs            # the newest log file's last 50 lines, then exit
 
 Some changes are only visible in an interactive terminal: how the screen looks, a key
 that does nothing, a resize, the terminal left broken after an error or a crash. An
-agent never runs `myapp tui`, not even to see it refuse: in an agent shell backed by a
+agent never runs `loadtop tui`, not even to see it refuse: in an agent shell backed by a
 terminal it would take that terminal over and block. Its refusal without a terminal is
 already tested (`tui_without_a_terminal_fails_with_exit_code_1_and_touches_nothing` in
-`crates/myapp/tests/cli.rs`). The agent asks the human, once, in one message, before
+`crates/loadtop/tests/cli.rs`). The agent asks the human, once, in one message, before
 iterating:
 
-- the exact commands: `cargo build --locked -p myapp` first, then, against a scratch
-  `HOME` so the run touches none of their data, `HOME="$scratch" target/debug/myapp tui`
+- the exact commands: `cargo build --locked -p loadtop` first, then, against a scratch
+  `HOME` so the run touches none of their data, `HOME="$scratch" target/debug/loadtop tui`
   (not `HOME="$scratch" cargo run …`, which makes rustup fetch a toolchain into it);
 - the keys to press, in order, and what to look for after each, including leaving
   with `q` and checking that the shell prompt and the cursor came back;
@@ -99,7 +99,7 @@ iterating:
 
 Then read what the run recorded (`tui opened`, each action, `tui closed`) yourself,
 with `tail` on the log under the scratch directory (`$scratch/Library/Logs/<bundle id>/`
-on macOS, `$scratch/.local/state/myapp/logs/` on Linux); `just logs` reads the real
+on macOS, `$scratch/.local/state/loadtop/logs/` on Linux); `just logs` reads the real
 `HOME`'s directory instead. `just logs-follow` never ends and is the human's.
 
 In a cloud session no human is at the VM, so nothing waits for an answer: write the same
@@ -125,7 +125,7 @@ command, not a paraphrase, and paste:
 - the command and its stdout, stderr, and exit code, for a subcommand's behavior;
 - a `just logs` excerpt, with the command that produced it, for behavior whose only
   observable is a log line;
-- what the human saw in `myapp tui`, with a screenshot for anything a person looks at;
+- what the human saw in `loadtop tui`, with a screenshot for anything a person looks at;
 - `just test-local` output, run by a human, for a change to an adapter with an
   `#[ignore = "local machine: …"]` test (`AGENTS.md` › "Review Checklist"). A cloud
   session never runs it: the Test Plan names it as needing a local run instead.

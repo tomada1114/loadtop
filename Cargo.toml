@@ -11,9 +11,9 @@ publish = false
 
 # The only place a dependency version is written (managing-dependencies skill).
 [workspace.dependencies]
-myapp-core = { path = "crates/myapp-core" }
-myapp-platform = { path = "crates/myapp-platform" }
-myapp-test-support = { path = "crates/myapp-test-support" }
+loadtop-core = { path = "crates/loadtop-core" }
+loadtop-platform = { path = "crates/loadtop-platform" }
+loadtop-test-support = { path = "crates/loadtop-test-support" }
 clap = { version = "4.6", default-features = false, features = ["std", "derive", "help", "usage", "error-context"] }
 # Optional OpenRouter adapter: parse a local credential file without changing process
 # environment, and use blocking HTTPS/JSON without an async runtime or compression.

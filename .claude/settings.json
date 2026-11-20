@@ -44,8 +44,6 @@
       "Bash(just install-cli*)",
       "Bash(just labels*)",
       "Bash(just ruleset*)",
-      "Bash(just bootstrap*)",
-      "Bash(cargo xtask bootstrap*)",
       "Bash(cargo xtask sync-labels*)",
       "Bash(cargo xtask apply-ruleset*)",
       "Bash(cargo install *)",

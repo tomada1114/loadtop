@@ -23,17 +23,17 @@ fewest machines while still able to fail for the behavior:
 | Under test | The file | Run by | Measured by |
 |---|---|---|---|
 | A private detail of core | `#[cfg(test)] mod tests` at the bottom of the same file | `just test-fast <filter>`, `just test-core` | core's floors |
-| Core's public API, and anything using a fake | `crates/myapp-core/tests/<subject>.rs` | `just test-fast <filter>`, `just test-core` | core's floors |
-| A TUI screen's state and what each action or key does to it | the same two places: the screen's module for its key table, `crates/myapp-core/tests/` for `update` over the fakes | `just test-fast <filter>`, `just test-core` | core's floors |
-| A port's contract against the fake | the `<port>_contract` function in `crates/myapp-test-support/src/<port>.rs`, called from `crates/myapp-core/tests/contracts.rs` | `just test-core` | core's floors (the core code it drives) |
-| The same contract against the real adapter | `crates/myapp-platform/tests/contracts.rs` | `just test-core` and `just test-platform` | none |
-| What one adapter does beyond the contract | `crates/myapp-platform/tests/<adapter>.rs`, or the adapter's own `#[cfg(test)]` module for a pure helper (`paths.rs`) | `just test-core`, `just test-platform` | none |
+| Core's public API, and anything using a fake | `crates/loadtop-core/tests/<subject>.rs` | `just test-fast <filter>`, `just test-core` | core's floors |
+| A TUI screen's state and what each action or key does to it | the same two places: the screen's module for its key table, `crates/loadtop-core/tests/` for `update` over the fakes | `just test-fast <filter>`, `just test-core` | core's floors |
+| A port's contract against the fake | the `<port>_contract` function in `crates/loadtop-test-support/src/<port>.rs`, called from `crates/loadtop-core/tests/contracts.rs` | `just test-core` | core's floors (the core code it drives) |
+| The same contract against the real adapter | `crates/loadtop-platform/tests/contracts.rs` | `just test-core` and `just test-platform` | none |
+| What one adapter does beyond the contract | `crates/loadtop-platform/tests/<adapter>.rs`, or the adapter's own `#[cfg(test)]` module for a pure helper (`paths.rs`) | `just test-core`, `just test-platform` | none |
 | An adapter behavior that needs a GUI session, a TCC grant, or the Keychain | the same file, `#[ignore = "local machine: <what it needs>"]` | `just test-local`, a human's recipe | none |
-| The `myapp` command line: arguments, streams, exit codes | `crates/myapp/tests/cli.rs`, the built binary with a temporary `HOME` | `just test-core`, `just test-platform` | none |
-| The binary's wording for each error variant | `#[cfg(test)] mod tests` in `crates/myapp/src/wording.rs`, one test per variant | `just test-core`, `just test-platform` | none |
-| How a terminal key event becomes core's key | `#[cfg(test)] mod tests` in `crates/myapp/src/tui/mod.rs` | `just test-core`, `just test-platform` | none |
-| What a TUI state looks like on screen | `#[cfg(test)] mod tests` in `crates/myapp/src/tui/view.rs`, drawn into ratatui's `TestBackend` | `just test-core`, `just test-platform` | none |
-| The real terminal loop (raw mode, the alternate screen, restoring it) | nowhere automated: a human runs `myapp tui` (`building-tuis`) | a human | none |
+| The `loadtop` command line: arguments, streams, exit codes | `crates/loadtop/tests/cli.rs`, the built binary with a temporary `HOME` | `just test-core`, `just test-platform` | none |
+| The binary's wording for each error variant | `#[cfg(test)] mod tests` in `crates/loadtop/src/wording.rs`, one test per variant | `just test-core`, `just test-platform` | none |
+| How a terminal key event becomes core's key | `#[cfg(test)] mod tests` in `crates/loadtop/src/tui/mod.rs` | `just test-core`, `just test-platform` | none |
+| What a TUI state looks like on screen | `#[cfg(test)] mod tests` in `crates/loadtop/src/tui/view.rs`, drawn into ratatui's `TestBackend` | `just test-core`, `just test-platform` | none |
+| The real terminal loop (raw mode, the alternate screen, restoring it) | nowhere automated: a human runs `loadtop tui` (`building-tuis`) | a human | none |
 | A repository task in `xtask/` | `#[cfg(test)] mod tests` in the task's file, with fakes for its child processes; a run of the built binary in `xtask/tests/` (`CARGO_BIN_EXE_xtask`, with a temporary directory as its root) | `just test-xtask` | `xtask` 85/90, and `xtask/guard/` 90/100 for the staged guard's rules |
 | A skill's bundled Python or shell script | the skill's own suite (`.claude/skills/<name>/scripts/tests/test_*.py`; `shellcheck` for `.sh`) | `just test-scripts` | none: no coverage is measured |
 
@@ -46,8 +46,8 @@ of glue.
 
 - An inline `#[cfg(test)] mod tests` sees private items, so it is for a private detail
   and for a pure value type's own rules. In the sample, `Counter`'s bounds are tested
-  there, in `crates/myapp-core/src/counter/mod.rs`, and the key table in `screen.rs`.
-- Anything that uses `myapp-test-support` goes in `crates/myapp-core/tests/`. The
+  there, in `crates/loadtop-core/src/counter/mod.rs`, and the key table in `screen.rs`.
+- Anything that uses `loadtop-test-support` goes in `crates/loadtop-core/tests/`. The
   support crate depends on core, so inside core's own unit-test build it links a
   second copy of core: a fake then implements the other copy's trait, and the compiler
   reports mismatched types (E0308) or a missing trait (E0277) for code that looks
@@ -61,22 +61,22 @@ of glue.
   `just test-core`; keep one only if it is meant to run. In the sample, `Tuning`
   carries one.
 
-## Fakes and contracts: `myapp-test-support`
+## Fakes and contracts: `loadtop-test-support`
 
 - One fake per port and one `<port>_contract` function per port, in
-  `crates/myapp-test-support/src/<port>.rs`, re-exported from its `lib.rs`. A new port
+  `crates/loadtop-test-support/src/<port>.rs`, re-exported from its `lib.rs`. A new port
   gets its fake and its contract in the same change, and both test crates call the
   contract.
 - The crate is a `[dev-dependencies]` entry only, so test code never ships; a harness
   check fails on a normal dependency edge to it (`just check-harness`).
 - Never make one test crate depend on another's `tests/` files: shared test code
-  belongs in `myapp-test-support`. The binary's tests use the same fakes (the
+  belongs in `loadtop-test-support`. The binary's tests use the same fakes (the
   `TestBackend` tests in `view.rs` build a `CounterService` over
   `InMemoryCounterStore` and `FailingCounterStore`).
 
 ## Platform and the human's machine
 
-- A test that needs only a file system runs everywhere: `myapp-platform` builds on
+- A test that needs only a file system runs everywhere: `loadtop-platform` builds on
   Linux and macOS, so `just test-core`, `just test-platform`, and CI's Linux and macOS
   jobs all run it. Each test gets its own `tempfile::tempdir()`.
 - A test of macOS-only or Linux-only behavior carries the same `#[cfg(target_os = …)]`
@@ -93,7 +93,7 @@ of glue.
 - A local-machine test is never the only test of a decision: nobody runs it for a pull
   request unasked.
 
-## The binary: `crates/myapp/`
+## The binary: `crates/loadtop/`
 
 The command line is tested from outside, against the built executable, because its
 contract is what a person or a script sees: arguments in, exit code, stdout, and stderr
@@ -107,11 +107,11 @@ tests; neither measures their coverage.
 
 The numbers live in their configs, not here, because a copied number goes stale the
 moment the config changes: the `--fail-under-lines` and `--fail-under-functions` flags
-of the justfile's `test-core` recipe (`cargo llvm-cov nextest -p myapp-core`) and
+of the justfile's `test-core` recipe (`cargo llvm-cov nextest -p loadtop-core`) and
 `test-xtask` recipe.
 
 - **Only core's own tests count toward core's floor.** `just test-core` measures the
-  test binaries of `myapp-core`; a CLI, TUI, or platform test that happens to exercise
+  test binaries of `loadtop-core`; a CLI, TUI, or platform test that happens to exercise
   core adds nothing to it.
 - **The floors measure lines and functions, not branches.** Branch coverage in
   `cargo llvm-cov` needs a nightly toolchain

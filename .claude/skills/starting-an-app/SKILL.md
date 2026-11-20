@@ -1,12 +1,12 @@
 ---
 name: starting-an-app
 description: >
-  Turning this template into a new app and its first decisions: just bootstrap and the
-  names it asks for, just verify-bootstrap, AGENTS.md's Product section, the tool's
-  shape (subcommands only, or plus a TUI), where it keeps state, removing the sample
-  counter, and the GitHub setup (labels, ruleset, security settings). Use when
-  starting an app from this repository, running or changing the bootstrap, or when a
-  placeholder survived the rename.
+  The first decisions of this app, cut from the template by its bootstrap: AGENTS.md's
+  Product section, the tool's shape (subcommands only, or plus a TUI), where it keeps
+  state, removing the sample counter, and the GitHub setup (labels, ruleset, security
+  settings). Use when starting the app's first feature, when a name the rename missed
+  turns up, when just check-harness fails on the Product section, or when setting up
+  the repository on GitHub.
 ---
 
 # Starting an App
@@ -21,21 +21,13 @@ the full-screen view (`building-tuis`); a system API or TCC permission
 (`integrating-system-apis`); what a gate may contain (`changing-gates`); README's prose
 (`updating-docs`).
 
-README's "Using This Template" is the reader-facing list of the steps below, in the same
-order; the bootstrap removes that section with the rest of the template-only material,
-so this skill is where an app still finds them.
-
 ## The order
 
 1. **Create and clone.** "Use this template" on GitHub, clone, `mise trust`, then
    `just install`.
-2. **Rename.** `just bootstrap` rewrites the repository, so it is a human's step (an
-   agent runs it only when asked). It prompts for, or takes as flags, the display name
-   (`MyApp`), the slug used for crate and binary names (`myapp`), the bundle identifier
-   (`com.example.myapp`), the GitHub `owner/repo`, the author, and the copyright holder.
-   It needs step 1's `just install`. **REQUIRED:**
-   [references/bootstrap.md](references/bootstrap.md), for its flags, defaults, and
-   validation, before running it, changing it, or chasing a leftover placeholder.
+2. **Rename.** Done: the bootstrap rewrote the template's placeholders to this app's
+   names, removed the template-only material, and deleted itself. A name it missed is
+   fixed by hand, in every spelling (hyphenated, underscored, upper-case).
 3. **Commit the rewrite**: review it (`git status`, `git diff`), and commit it as one
    commit before editing anything, so the rename stays one reviewable diff.
 4. **Write `AGENTS.md`'s `## Product` section**: what the app is and who it is for, the
@@ -69,13 +61,13 @@ so this skill is where an app still finds them.
 ## Choose the tool's shape
 
 Every app starts with both front ends over one core: subcommands
-(`myapp counter show`) for a script, a scheduled job, or a quick look, and `myapp tui`
+(`loadtop counter show`) for a script, a scheduled job, or a quick look, and `loadtop tui`
 for a person who sits in front of the tool. Decide before the first feature which the
 app needs, and write it into the Product section's core interaction:
 
 - **Subcommands only**, for a tool that is scripted or scheduled: remove the `tui`
-  subcommand, `crates/myapp/src/tui/`, and core's screen types (`CounterScreen`,
-  `ScreenAction`, `ScreenKey`), drop `ratatui` from `crates/myapp/Cargo.toml`, and,
+  subcommand, `crates/loadtop/src/tui/`, and core's screen types (`CounterScreen`,
+  `ScreenAction`, `ScreenKey`), drop `ratatui` from `crates/loadtop/Cargo.toml`, and,
   since no other member uses it, its entry in the root `Cargo.toml`'s
   `[workspace.dependencies]` (crossterm has no entry of its own: the binary reaches it
   as `ratatui::crossterm`). `mise exec -- cargo shear` confirms nothing is left unused
@@ -94,7 +86,7 @@ persistence decision too (below).
 
 The sample keeps `counter.json` where each system expects an app's data:
 `~/Library/Application Support/<bundle identifier>/` on macOS and
-`$XDG_DATA_HOME/<slug>/` on Linux (`crates/myapp-platform/src/paths.rs`), with logs
+`$XDG_DATA_HOME/<slug>/` on Linux (`crates/loadtop-platform/src/paths.rs`), with logs
 beside them. The bundle identifier and the slug the bootstrap set key those
 directories, so they are fixed once the tool has run anywhere a user's data lives.
 Decide the app's own files — where, in what format, with what version field — as soon
@@ -140,7 +132,7 @@ tool with a screen, the TUI's enter, leave, and panic-hook code.
 ## Install it
 
 There is no release pipeline: the tool is built and installed from its checkout with
-`just install-cli` (`cargo install --locked --path crates/myapp`), which writes to
+`just install-cli` (`cargo install --locked --path crates/loadtop`), which writes to
 `~/.cargo/bin` outside the checkout, so it is a human's step: no secret, no tag, and no
 CI involved. `CHANGELOG.md` and the workspace version still record what changed.
 Reaching other people —

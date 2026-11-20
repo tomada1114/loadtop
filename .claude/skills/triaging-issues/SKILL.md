@@ -95,8 +95,8 @@ Two things nothing else can recover later:
 
 - **What is wrong today, with a `path:line`.** A symptom without a location makes the
   next person re-find what the filer already knew. Point at the code, not the symptom:
-  `crates/myapp-platform/src/paths.rs:31`, `crates/myapp/src/wording.rs:40`,
-  `crates/myapp-core/src/counter/screen.rs:58`.
+  `crates/loadtop-platform/src/paths.rs:31`, `crates/loadtop/src/wording.rs:40`,
+  `crates/loadtop-core/src/counter/screen.rs:58`.
 - **What observable result closes it**, as a command or a test: `just test-core` passes
   with a new test named for the behavior, `just check-harness` passes, a `grep` prints
   nothing, `just logs` shows a line. Never a feeling of doneness ("works correctly", "is

@@ -1,7 +1,7 @@
 ---
 paths:
   - "crates/*/tests/**"
-  - "crates/myapp-test-support/**"
+  - "crates/loadtop-test-support/**"
 ---
 
 Only what no skill states: which skill owns which question about a test, and the rule

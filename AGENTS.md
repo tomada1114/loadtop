@@ -9,8 +9,8 @@ a value a gate enforces is its config's, where running the gate is how you learn
 
 ## Overview
 
-This is a Rust command-line tool built from a strict template: one binary, `myapp`,
-whose clap subcommands do the work and whose `myapp tui` subcommand opens a full-screen
+This is a Rust command-line tool built from a strict template: one binary, `loadtop`,
+whose clap subcommands do the work and whose `loadtop tui` subcommand opens a full-screen
 ratatui view over the same core. It runs on macOS and Linux and is installed from its
 checkout with `cargo install --path`; there is no release pipeline. How it is built and
 why lives in the skills and in [Architecture](#architecture), never in a separate
@@ -18,12 +18,10 @@ architecture or roadmap document (`updating-docs`).
 
 ## Product
 
-**TODO: in the template this section is a placeholder.** It is the one part of this
-file about the application rather than the harness, so every repository cut from the
-template writes its own: without it an agent implementing an issue here has no in-repo
-answer to "is this in scope?". Fill in every `TODO:` below right after the rename
-(`README.md`'s "Using This Template") — once `cargo xtask bootstrap` has run,
-`just check-harness` fails while one is left.
+This section is the one part of this file about the application rather than the
+harness: without it, an agent implementing an issue here has no in-repo answer to "is
+this in scope?". The owner writes each bullet (the `starting-an-app` skill says how);
+`just check-harness` fails while one still holds its `TODO` marker.
 
 - **What it is, and who it is for** — TODO: one paragraph. The problem it solves, and
   whose problem that is.
@@ -55,7 +53,6 @@ just deny  # cargo deny
 just check  # Every check a machine runs without a human
 just clean
 just prune-temp  # Remove leftover temp dirs and idle scratchpads
-just verify-bootstrap  # Bootstrap a scratch clone; fail on what it leaves behind
 # A human's recipes: only when asked, never in a cloud session
 just test-local  # The #[ignore]d tests
 just logs-follow  # Never ends
@@ -63,7 +60,6 @@ just install-cli  # Install the binary into ~/.cargo/bin
 # Writes to GitHub or rewrites the repository: a human's step
 just labels  # Create/update labels from .github/labels.yml
 just ruleset  # Create/update .github/rulesets/*.json (admin-only)
-just bootstrap  # Turn the template into a new app
 ```
 
 ## Validating a change
@@ -73,42 +69,41 @@ opens a window or takes focus.
 
 | What you changed | The narrowest check that can fail |
 |---|---|
-| `crates/myapp-core/` | `just test-fast <filter>`, then `just test-core` (the floors) and `just lint` |
-| `crates/myapp-platform/` | `just test-platform`; an `#[ignore]`d test needs the human's `just test-local` |
-| `crates/myapp-test-support/`, `crates/myapp/` | `just test-core`, then `just test-platform`; the terminal loop needs the human's `myapp tui` run |
+| `crates/loadtop-core/` | `just test-fast <filter>`, then `just test-core` (the floors) and `just lint` |
+| `crates/loadtop-platform/` | `just test-platform`; an `#[ignore]`d test needs the human's `just test-local` |
+| `crates/loadtop-test-support/`, `crates/loadtop/` | `just test-core`, then `just test-platform`; the terminal loop needs the human's `loadtop tui` run |
 | `xtask/`, a harness check | `cargo nextest run -p xtask -p xtask-guard`, then `just test-xtask`, `just lint`, `just check-harness` |
 | `lefthook.yml` | `just test-xtask`, then `just verify-hooks` |
 | A recipe, skill, workflow, label, issue form, ruleset, `## Product`, core's forbidden-crate lists (`deny.toml`'s `wrappers`), `.claude/settings.json` | `just check-harness`; for a workflow also `mise exec -- actionlint` and `mise exec -- zizmor .`, for a skill's scripts `just test-scripts` |
 | Markdown, `.github/labels.yml`, an issue form | `mise exec -- typos <file>` |
 | `Cargo.toml`, `Cargo.lock`, `deny.toml` | `just deny`, `mise exec -- cargo shear`, `just lint`, `just test` |
 | `mise.toml`, `rust-toolchain.toml` | `mise install`, then `just check` |
-| A new file or placeholder spelling (`MyApp`, `myapp_core`, `com.example.myapp`) | `just verify-bootstrap` |
 
 ## Architecture
 
 | Crate | Role |
 |---|---|
-| `myapp-core` | Logic, state, and the ports (traits) to everything outside the process; coverage-gated |
-| `myapp-platform` | Adapters for core's ports against the real OS: translation only |
-| `myapp-test-support` | A fake and a `<port>_contract` function per port; dev-dependency only |
-| `myapp` | The binary and composition root: translates and decides nothing; `src/wording.rs` holds every string a user reads, `src/tui/` the terminal loop and view |
+| `loadtop-core` | Logic, state, and the ports (traits) to everything outside the process; coverage-gated |
+| `loadtop-platform` | Adapters for core's ports against the real OS: translation only |
+| `loadtop-test-support` | A fake and a `<port>_contract` function per port; dev-dependency only |
+| `loadtop` | The binary and composition root: translates and decides nothing; `src/wording.rs` holds every string a user reads, `src/tui/` the terminal loop and view |
 | `xtask`, `xtask-guard` | `cargo xtask <task>` automation and the staged guard; never shipped |
 
-- New logic goes in `myapp-core` with tests: a decision found in an adapter or the
+- New logic goes in `loadtop-core` with tests: a decision found in an adapter or the
   binary belongs in core, where the coverage floor sees it.
-- Dependencies point one way: `myapp-platform` → `myapp-core`, and both ← `myapp`. Core
+- Dependencies point one way: `loadtop-platform` → `loadtop-core`, and both ← `loadtop`. Core
   never names clap, ratatui, or crossterm.
-- A port is a synchronous `Send + Sync` trait core declares, `myapp-platform`
+- A port is a synchronous `Send + Sync` trait core declares, `loadtop-platform`
   implements, the binary constructs, and a test fakes. Core never meets async.
 - The core boundary is enforced three times, so removing one layer leaves the others:
   core's `Cargo.toml` lists no OS or platform crate; `deny.toml`'s `[bans]`
-  `wrappers` let only `myapp` depend on `myapp-platform`; and a harness check fails
+  `wrappers` let only `loadtop` depend on `loadtop-platform`; and a harness check fails
   when core's normal and build dependency closure reaches `objc2*`,
-  `core-foundation*`, `security-framework*`, or `myapp-platform`. Those lists change
+  `core-foundation*`, `security-framework*`, or `loadtop-platform`. Those lists change
   together, and `just check-harness` fails when they differ.
 - I/O, time, the environment, and processes reach core only through ports or arguments,
   and core never sleeps or starts a thread that outlives the call:
-  `crates/myapp-core/clippy.toml` lists the banned calls, and `just lint` enforces it.
+  `crates/loadtop-core/clippy.toml` lists the banned calls, and `just lint` enforces it.
 - Core logs nothing and builds no user-facing sentence. The optional model calls (the
   `openrouter` feature) are `docs/openrouter.md`'s.
 - `target/` and `coverage/` are build output: never edit or commit them.
@@ -119,11 +114,11 @@ The contract is what something outside a change can observe; everything else (an
 adapter's internals, the view's layout, module layout, log wording) is private and
 needs only the gates. This is the one list of it:
 
-- **Core's public API**, every `pub` item `crates/myapp-core/src/lib.rs` re-exports:
+- **Core's public API**, every `pub` item `crates/loadtop-core/src/lib.rs` re-exports:
   update every caller in the same pull request. A new port is a design change.
-- **The data and log locations**, keyed by the bundle identifier `com.example.myapp`
-  (`crates/myapp-platform/src/paths.rs`, the justfile's `bundle_id`) and the XDG
-  directory name `myapp`: fixed once the tool has run anywhere but your checkout, since
+- **The data and log locations**, keyed by the bundle identifier `io.github.tomada1114.loadtop`
+  (`crates/loadtop-platform/src/paths.rs`, the justfile's `bundle_id`) and the XDG
+  directory name `loadtop`: fixed once the tool has run anywhere but your checkout, since
   a new name leaves the user's data behind. A human's decision, and a design change.
 - **On-disk file formats** (`integrating-system-apis`' `references/file-formats.md`):
   a new version still reads the old one, with a format version, a migration, and a test
@@ -132,7 +127,7 @@ needs only the gates. This is the one list of it:
   and exit codes: keep the old form working, or say the change is breaking in
   `CHANGELOG.md`.
 
-Only the first (the compiler) and the last (`crates/myapp/tests/cli.rs`) are guarded:
+Only the first (the compiler) and the last (`crates/loadtop/tests/cli.rs`) are guarded:
 a changed format or identifier passes every check and fails on the user's machine, so
 review catches it. A user-visible change to any owes a `CHANGELOG.md` entry.
 
@@ -154,9 +149,9 @@ never as a dated entry:
   tap, crates.io publishing, an updater;
 - `rust-version` in `Cargo.toml`;
 - an OS privacy permission (on macOS, a TCC grant);
-- `unsafe` code, which means lifting `unsafe_code = "forbid"` for `myapp-platform`;
-- the bundle identifier (`com.example.myapp` until the bootstrap renames it) or the XDG
-  directory name (`myapp`);
+- `unsafe` code, which means lifting `unsafe_code = "forbid"` for `loadtop-platform`;
+- the bundle identifier (`io.github.tomada1114.loadtop`) or the XDG
+  directory name (`loadtop`);
 - a second language for the tool's wording, or a TUI theme beyond the terminal's colors;
 - replacing clap or ratatui, a clap major, or ratatui 1.0 and its later majors (a
   pre-1.0 ratatui or crossterm minor is `merging-dependency-prs`' migration instead).
@@ -180,16 +175,16 @@ Skills live in `.claude/skills/`, the one tree: edit a skill there, in place.
 | `changing-gates` | A file that enforces; the enforcement layers |
 | `updating-docs` | Which document a change must update |
 | `writing-repo-scripts` | A `cargo xtask` task or a skill's script |
-| `starting-an-app` | Template to app; GitHub settings |
+| `starting-an-app` | The app's first decisions; GitHub settings |
 | `writing-rust` | Rust idioms, compiler messages, clippy |
 | `tdd` | Red-green-refactor |
 | `writing-tests` | The body of one Rust test |
 | `placing-tests` | Where a test goes; its coverage floor |
 | `designing-core-logic` | Core logic: ports, transitions, views |
 | `designing-clis` | A subcommand, its output, logging |
-| `building-tuis` | The `myapp tui` screen |
+| `building-tuis` | The `loadtop tui` screen |
 | `designing-errors` | Error enums, wording, `ERR_*` codes |
-| `integrating-system-apis` | OS calls in `myapp-platform`; file formats |
+| `integrating-system-apis` | OS calls in `loadtop-platform`; file formats |
 | `running-the-app` | Seeing a change work |
 
 ### Rules
@@ -200,7 +195,7 @@ enforces.
 | Rule | Loads when you touch |
 |---|---|
 | `.claude/rules/rust.md` | `crates/**/*.rs` |
-| `.claude/rules/testing.md` | `crates/*/tests/**`, `crates/myapp-test-support/**` |
+| `.claude/rules/testing.md` | `crates/*/tests/**`, `crates/loadtop-test-support/**` |
 | `.claude/rules/project.md` | manifests, lockfiles, tool pins, and gate configs |
 | `.claude/rules/docs.md` | `docs/**/*.md`, `README.md`, `CONTRIBUTING.md`, `CHANGELOG.md` |
 | `.claude/rules/scripts.md` | `xtask/**`, `.claude/skills/*/scripts/**`, `.claude/hooks/**`, `.claude/cloud/**` |
@@ -295,7 +290,7 @@ PostToolUse hook, any step an agent runs to verify its work — may show a windo
 keyboard focus, move the pointer, raise a permission, Keychain, or Gatekeeper prompt, or
 take over a terminal.
 
-- Never run `myapp tui` (`cargo run -p myapp -- tui` included). No check needs a TTY:
+- Never run `loadtop tui` (`cargo run -p loadtop -- tui` included). No check needs a TTY:
   the TUI is tested through ratatui's `TestBackend` (`building-tuis`). When only the
   real terminal shows a change, ask the human to run it (`running-the-app`).
 - For evidence, use the tests, `just test-platform`, a plain subcommand run against a
