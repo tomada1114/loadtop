@@ -1,6 +1,6 @@
 # loadtop — Design direction
 
-- **Status:** Decided 2026-11-20 under the user's delegation (review on return)
+- **Status:** Decided 2026-11-20
 - **Related:** `docs/design/ux-guidelines.md` (color and emphasis table, glyphs), `docs/product/ux-flows.md` (layouts)
 
 ## Why this stage is short

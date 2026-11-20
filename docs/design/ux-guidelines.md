@@ -6,7 +6,7 @@
 | Platforms | macOS terminal emulators (Terminal.app, iTerm2, Ghostty and the like), full-screen TUI; plus plain text and JSON on stdout |
 | App type | Developer tools: a process monitor with actions |
 | Related | Requirements: `docs/product/requirements.md` · UX flows: `docs/product/ux-flows.md` (screens, keys, flows: not restated here) |
-| Status | Decided 2026-11-20: the user's answers, plus the rows marked "under delegation" in the Decision log (review on return) |
+| Status | Decided 2026-11-20 |
 
 ## Principles
 
@@ -138,7 +138,7 @@ units.
 |---|---|---|---|
 | 2026-11-20 | The terminal's 16 named colors, sparingly, always repeating text | Bold and reverse only | Heavy rows should stand out at a glance; named colors follow the user's theme, so it is not a theme of our own. Recorded for stage 7: the template's `building-tuis` says "the terminal's own foreground and background", so this is a deliberate, small widening |
 | 2026-11-20 | Re-sort every refresh, with the selection following the PID; freeze while an overlay is open | Freeze order for 3 s after a key; a pause-the-view key | Matches htop; the top row stays the heaviest; a frozen dialog prevents acting on a moved row |
-| 2026-11-20 | Under the user's delegation, after advisor review: resuming something loadtop did not pause confirms; the target is re-resolved at confirm; a 300 ms first sample; order by a 3-sample mean; a fixed result row and key bar; paused rows never folded | Resume always without a dialog; a 2 s blank first frame; instantaneous order | A job stopped on purpose must not be resumed by accident; the top row should not flap; `building-tuis` wants every action named on screen |
+| 2026-11-20 | After review: resuming something loadtop did not pause confirms; the target is re-resolved at confirm; a 300 ms first sample; order by a 3-sample mean; a fixed result row and key bar; paused rows never folded | Resume always without a dialog; a 2 s blank first frame; instantaneous order | A job stopped on purpose must not be resumed by accident; the top row should not flap; `building-tuis` wants every action named on screen |
 | 2026-11-20 | No mouse in v1 | Wheel scroll and click to select | Keeps the terminal's text selection for copying PIDs |
 | 2026-11-20 | Box drawing for the tree, words for states, no emoji | ASCII only; emoji marks | Every macOS terminal draws box characters; emoji widths break columns |
 

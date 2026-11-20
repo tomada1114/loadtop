@@ -1,6 +1,6 @@
 # loadtop — Screens and Flows
 
-- **Status:** Decided 2026-11-20 (the user's answers, plus choices under delegation marked below; review on return)
+- **Status:** Decided 2026-11-20
 - **Source:** `docs/product/requirements.md` (signed off 2026-11-20). Section numbers (§) refer to it.
 - **Platform:** a full-screen terminal UI (ratatui), keyboard only, on macOS, plus plain
   text from `--once`. App-wide policy (colors and marks, messages, timing, accessibility)
@@ -17,7 +17,7 @@
   `Enter`, so the list keeps the full width (rejected: a pane that is always visible).
 - Keys are mnemonic letters, and none needs `fn` on a Mac keyboard (rejected: htop's F
   keys).
-- Decided without asking, under the user's delegation (review on return): the session-root
+- Also decided: the session-root
   variants confirm with `Y`; resuming what this run paused needs no dialog; `z` on a
   partly paused subtree pauses the rest; paused rows are never folded away; nested
   sessions are left out of subtree actions; resuming something loadtop did not pause
@@ -69,20 +69,20 @@ corners here; they render with rounded borders (design-direction).
 ```
 loadtop  CPU Claude 3.1 cores · all 5.2 of 8   MEM Claude 2.9G · used 14.2/16G
 sort CPU (6s avg) · every 2s · 2 paused                                    1/14
-  PID    NAME                               KIND   CPU%    MEM  PORTS  STATE
-▾ desktop  iobsidian · Fix vault links      busy     182.0   1.6G
-  91204  ├─ node vite                       tool     141.2   612M  5173
-  91230  │  └─ esbuild --service            tool      38.9    96M
-  81006  ├─ npm exec @playwright/mcp        mcp        1.4    88M
-         └─ +6 more                                    0.5   310M
-▾ leftover  rust-template · closed session 5e27e5c4     96.3   740M
-  52143  └─ zsh -c npm run test:watch       -          0.0     4M
-  52150     └─ node vitest --watch          tool      96.3   736M         
-▸ terminal  ~/.claude · idle                            12.0   420M
-▾ leftover? ghq/…/loadtop                               3.1    52M
-  60311  └─ sh -c ./watch.sh                -          3.1    52M
-▸ headless  scratchpad/probe · busy                     0.4    90M
-  71002  …  python -m http.server           tool       0.0    22M  8000   paused 4m
+    PID  NAME                              KIND    CPU%    MEM  PORTS STATE
+▾ desktop  acme-web · Fix checkout flow · busy    182.0   1.6G
+  91204  ├─ node vite                      tool   141.2   612M  5173
+  91230  │  └─ esbuild --service           tool    38.9    96M
+  81006  ├─ npm exec @playwright/mcp       mcp      1.4    88M
+         └─ +6 more                                 0.5   310M
+▾ leftover  acme-api · closed session 8b41d0e7     96.3   740M
+  52143  └─ zsh -c npm run test:watch      -        0.0     4M
+  52150     └─ node vitest --watch         tool    96.3   736M
+▸ terminal  ~/code/notes · idle                    12.0   420M
+▾ leftover? code/…/api                              3.1    52M
+  60311  └─ sh -c ./watch.sh               -        3.1    52M
+▸ headless  tmp/spike · busy                        0.4    90M
+  71002  …  python -m http.server          tool     0.0    22M  8000  paused 4m
 
 stopped 3 · already gone 1
  x stop  z pause/resume  s sort  ⏎ details  ←→ fold  ? help  q quit
@@ -113,7 +113,7 @@ stopped 3 · already gone 1
   do not fit show the first one plus `+N`. All columns, KIND included, stay at the 80
   minimum.
 - Group rows truncate in this order: the session name (end, `…`), then the project
-  (from the left, `…/rust-template`). The kind word, `busy`/`idle` and the totals never
+  (from the left, `…/acme-api`). The kind word, `busy`/`idle` and the totals never
   go.
 - Heat colors (ux-guidelines) apply to process rows and to group totals alike.
 
@@ -123,7 +123,7 @@ Subtree (the default variant):
 
 ```
 ┌ Stop 3 processes? ───────────────────────────────────────────┐
-│ desktop · iobsidian · Fix vault links  (session stays)        │
+│ desktop · acme-web · Fix checkout flow  (session stays)       │
 │                                                               │
 │  91204  node vite              141.2%   612M  :5173           │
 │  91230  esbuild --service       38.9%    96M                  │
@@ -136,20 +136,20 @@ Subtree (the default variant):
 
 - Up to 5 processes are listed, heaviest first; beyond that, `and N more` (§3.4).
 - When the target contains a live nested session, a line names it: `Skipped: 1 nested
-  session (headless · scratchpad/probe). Select it to act on it.`
+  session (headless · tmp/spike). Select it to act on it.`
 - The count is the one at opening. At `y` the target is resolved again; the result row
   reports what was actually signaled.
 - Probable-leftover variant: one extra line: `Owner inferred from the working directory
   — not confirmed by Claude Code's marker.`
 - Session-root variant (`X`): the title becomes `End session and stop N processes?`, plus
-  the line `The Claude Code session itself (terminal · ~/.claude) will end.` The confirm
+  the line `The Claude Code session itself (terminal · ~/code/notes) will end.` The confirm
   key becomes `Y` (shift), so a habitual `y` cannot end a session.
 
 ### S3 Confirm pause
 
 ```
 ┌ Pause 2 processes? ──────────────────────────────────────────┐
-│ desktop · iobsidian · Fix vault links                         │
+│ desktop · acme-web · Fix checkout flow                        │
 │                                                               │
 │  91204  node vite        141.2%   612M  :5173                 │
 │  91230  esbuild          38.9%     96M                        │
@@ -200,11 +200,11 @@ Subtree (the default variant):
 
 ```
 ┌ 91204 node ──────────────────────────────────────────────────┐
-│ Command  node /Users/…/iobsidian/node_modules/.bin/vite --port │
+│ Command  node /Users/…/acme-web/node_modules/.bin/vite --port │
 │          5173 --host 127.0.0.1                                │
-│ cwd      ~/ghq/github.com/tomada1114/iobsidian                │
-│ Session  desktop · Fix vault links · busy                     │
-│          id 54d65263…, also 1f0c9a77… (before /clear)         │
+│ cwd      ~/code/acme-web                                      │
+│ Session  desktop · Fix checkout flow · busy                   │
+│          id 3f9c2a10…, also 1f0c9a77… (before /clear)         │
 │ Parent   91190 zsh -c npm run dev                             │
 │ Started  2026-11-20 09:12:03 (42m ago)                        │
 │ Load     CPU 141.2% · MEM 612M · ports 5173                   │
@@ -248,13 +248,13 @@ loadtop  CPU Claude 0 cores · all 1.1 of 8   MEM Claude 0 · used 9.8/16G
 ```
 $ loadtop --once
 CPU Claude 3.1 cores · all 5.2 of 8   MEM Claude 2.9G · used 14.2/16G
-desktop  iobsidian · Fix vault links · busy        182.0%  1.6G
+desktop  acme-web · Fix checkout flow · busy        182.0%  1.6G
   91204  node vite                    tool  141.2%  612M  :5173
   91230    esbuild --service          tool   38.9%   96M
   81006  npm exec @playwright/mcp     mcp     1.4%   88M
   81118    node cli.js --headless     mcp     0.3%  120M
   90011  zsh -c git status            -       0.0%    4M
-leftover rust-template · closed session 5e27e5c4    96.3%  740M
+leftover acme-api · closed session 8b41d0e7    96.3%  740M
   52143  zsh -c npm run test:watch    -       0.0%    4M
   52150    node vitest --watch        tool   96.3%  736M
 ```

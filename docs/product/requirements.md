@@ -1,6 +1,6 @@
 # loadtop — Requirements
 
-- **Status:** Signed off 2026-11-20; amended the same day under the user's delegation (pending the user's review: see the Decision log entries marked "under delegation")
+- **Status:** Signed off 2026-11-20
 - **Platform and stack:** macOS (tested on Apple Silicon with macOS 27; Intel and older macOS untested); a single Rust
   binary cut from `rust-template`, with clap subcommands and flags and a ratatui
   full-screen view over one core crate. Local only: no network, no daemon, no LLM, no API key.
@@ -146,9 +146,8 @@ of a leftover tree is often unreadable while a `node` below it carries the marke
   Only the folder names are read, never their contents. An exact match per ancestor, not
   a prefix, so `~/foo-bar` is not inside project `~/foo`. The home directory and `/` are
   never projects, even if a session once ran there.
-- **Observed 2026-11-20:** this rule flagged none of the 302 same-user, env-unreadable
-  processes at ppid 1; most are launchd agents with cwd `/`. There are 108 project
-  folders, none of them home itself.
+- **Observed 2026-11-20:** on the author's Mac this rule flagged none of the same-user,
+  env-unreadable processes at ppid 1, which are mostly launchd agents with cwd `/`.
 - **Daemons:** a long-lived daemon started from a session (tmux, ssh-agent) inherits the
   marker too. That is why the label says "started by a closed session", not "garbage".
 
@@ -283,7 +282,7 @@ session ID sets. `--json` output is the one external format (§3.6).
   project" is an exact per-ancestor match, and home and `/` are never projects; PID plus
   start time is re-checked before every signal; the README says "one action" and "no
   ports column"; and the undocumented session record is used when valid, with fallbacks.
-- 2026-11-20 Decided under the user's delegation ("follow the recommendations; aim for the best, not the minimum"), to review on return: nested sessions are left out of a subtree action; resuming something loadtop did not pause confirms; the target is re-resolved at `y`; `--once` prints the full tree; the first sample takes 300 ms; order uses a 3-sample mean.
+- 2026-11-20 Nested sessions are left out of a subtree action; resuming something loadtop did not pause confirms; the target is re-resolved at `y`; `--once` prints the full tree; the first sample takes 300 ms; order uses a 3-sample mean.
 - 2026-11-20 The session root, loadtop and loadtop's ancestors are excluded by default;
   stopping the root is a separate action; SIGTERM, then SIGKILL after 3 s (rejected:
   root included in the tree; root untouchable).

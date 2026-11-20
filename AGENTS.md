@@ -34,9 +34,9 @@ this in scope?". The owner writes each bullet (the `starting-an-app` skill says 
   `docs/product/ux-flows.md`, and the app-wide UX policy in `docs/design/ux-guidelines.md`.
 - **The core interaction** — run `loadtop`, see the heaviest session or leftover in the
   first row, select it, and stop its tree (SIGTERM, then SIGKILL after 3 s) or pause it
-  (SIGSTOP, later SIGCONT), after a confirmation that names what is hit. A bare
-  `loadtop` opens the full-screen view; `--once` and `--json` print one sample and exit,
-  for scripts and screen readers, and never signal anything.
+  (SIGSTOP, later SIGCONT), after a confirmation that names what is hit. A person works
+  in the full-screen view; `--once` and `--json` print one sample and exit, for scripts
+  and screen readers, and never signal anything.
 - **Non-goals** — tokens, context, quota or cost; stopping anything automatically (no
   daemon, hook, or LaunchAgent); waking a paused server when a connection arrives; load
   history on disk (a later release); Codex or other agents (a later release); stop,
