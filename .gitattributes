@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+# A generated, committed file: GitHub collapses it in pull request diffs, so reviewers
+# read the manifests instead.
+Cargo.lock linguist-generated=true
+
+*.png binary
+*.icns binary
+*.ico binary

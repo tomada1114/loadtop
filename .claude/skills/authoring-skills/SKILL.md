@@ -1,0 +1,181 @@
+---
+name: authoring-skills
+description: >
+  How a skill under .claude/skills/ is written so that it loads: the frontmatter and
+  its allowed keys, the description and listing caps, layout, and the conventions
+  every skill follows. Use when adding, editing, reviewing, or splitting a SKILL.md or
+  a references/ file, when just check-harness fails on a skill, when deciding whether
+  material belongs in AGENTS.md, a rule, or a skill, or when a skill never fires.
+---
+
+# Authoring Skills
+
+**Owns:** where a skill lives, its layout and frontmatter, its size, and the conventions
+every skill in this repository follows. **Does not own:** how a skill's bundled script
+is written (`writing-repo-scripts`); which documentation surface a change lands on
+(`updating-docs`); changing a gate's configuration (`changing-gates`); what any one
+skill says about its own subject.
+
+## One tree, edited in place
+
+- Author a skill once, under `.claude/skills/<name>/`, where Claude Code reads project
+  skills (https://code.claude.com/docs/en/skills, checked 2026-09-29), and edit it
+  there: no generated copy exists to keep in step.
+- A skill is real files, not a symlink: a symlink is only a link where git checks it
+  out as one (`core.symlinks`, https://git-scm.com/docs/git-config, checked
+  2026-09-29), and `just check-harness` refuses one under `.claude/skills/`.
+- The pre-commit hook's `typos` job spell-checks a staged skill; CI's tree-wide run
+  skips hidden directories such as `.claude/`, so `mise exec -- typos
+  .claude/skills/<name>` (below) is the check for a skill committed without the hook.
+  Markdown has no formatter here: wrap prose by hand at the width the neighboring
+  skills use. When `typos` flags a real technical term, add it to `typos.toml`'s
+  `[default.extend-words]` rather than rewording around the checker (a gate file:
+  `changing-gates`).
+- Skills live in this repository, never in a committed plugin marketplace: a plugin's
+  skill sits outside `.claude/skills/`, so `just check-harness` and CI never see it; an
+  unpinned plugin update changes behavior without a pull request; and a public template
+  cannot ask its users to trust a personal marketplace.
+
+## Layout
+
+- One directory level: `.claude/skills/<name>/SKILL.md`, plus optional `references/`,
+  `scripts/`, or `assets/` beneath it. No category folders.
+- No file below a skill's top directory is named `SKILL.md`: a scanner walking the tree
+  can take it for a second skill. Name a reference file for its content.
+- A `references/*.md` file is linked from `SKILL.md` by relative path, never with `@` or
+  an absolute path; it links to no further reference file (one level deep) and stays
+  under 400 lines.
+
+## Frontmatter
+
+Two required keys, `name` and `description`, the description a folded block scalar
+(`description: >`), and at most four optional Claude Code keys; `just check-harness`
+refuses any other, so a misspelled or unreviewed key fails instead of being ignored.
+
+- `name` equals the directory name: lowercase letters, digits, and single hyphens, at
+  most 64 characters (https://agentskills.io/specification, checked 2026-09-29).
+- `description` is printable ASCII (no em dash, no curly quote), at most 500
+  characters, and every skill's description together at most 9,000
+  (`ERR_CHECK_SKILL_LISTING`). Claude Code lists them in one budget shared with a
+  person's own skills and plugins and drops the descriptions that overflow it, after
+  which a skill loads by name only (https://code.claude.com/docs/en/skills, checked
+  2026-11-19). The same page shows `<` and `>` as entities: write `[name]` instead.
+- It is a retrieval string in English: what the skill covers, then when to load it,
+  naming the files, commands, error codes, and phrases that should trigger it. It never
+  summarizes the skill's own steps.
+- The optional keys (same page): `paths`, a list of quoted globs for the files that
+  activate the skill, where its scope is a directory; `disable-model-invocation: true`
+  where the skill writes to a remote and must be asked for by name;
+  `allowed-tools`; and `argument-hint`, quoted.
+
+## What belongs in a skill
+
+- Work that recurs and needs a procedure, local references, or policy loaded on demand.
+  A fact stated once goes in `AGENTS.md` or a doc; a variant of an existing skill's
+  subject extends that skill rather than starting a near-duplicate.
+- One home per rule. A prohibition every agent needs whatever its task (never weaken a
+  gate, never bypass a hook) stays in `AGENTS.md`, and a skill points at it. A short
+  per-file rule goes in `.claude/rules/`, which loads by path, so a skill must still
+  read correctly for an agent that never touched a matching file.
+- What a config enforces gets one line, `Enforced by: <file> "<setting>".`, and the skill
+  spends its words on the judgment the config cannot express.
+- Every skill opens with an ownership block like the one above (`**Owns:**` /
+  `**Does not own:**`), naming the sibling that decides each adjacent question.
+- Adding, renaming, removing, or widening a skill updates its row in `AGENTS.md`'s Skills
+  table in the same commit.
+
+## Conventions every skill follows
+
+Defined here once; worked examples and edge cases are in
+[references/convention-examples.md](references/convention-examples.md).
+
+**Cross-reference markers.** A pointer the reader must follow as a step of the task
+carries `**REQUIRED:**` (the task cannot be finished correctly without it) or
+`**BACKGROUND:**` (it only explains why), and no other marker. Its target is a sibling
+skill by name in backticks (never a path: the two trees differ), a `references/` file by
+relative link, or `AGENTS.md` › "Section name" (never a line number). A mention that only
+names an owner or credits a source stays bare.
+
+**Deletable illustrations.** Every app deletes the template's sample, the counter
+(`docs/getting-started.md` › "Removing the example code"). State each rule in a sentence
+that does not mention the sample, then give the sample as the example in the next
+sentence or code block, so deleting the example leaves a rule that still reads. No build
+or test depends on a skill's code block. Write placeholder names exactly (`myapp-core`,
+`myapp_core`, `MyApp`, `com.example.myapp`) so the bootstrap's rename finds them.
+
+**Platform-skill scope.** On a surface someone else documents (Rust, cargo, clap,
+ratatui, another crate, macOS and Apple APIs, Linux, Python, GitHub Actions), a skill
+holds only this
+repository's decisions, their reasons, the mechanics that are ours (paths, recipes, crate
+names, error codes), and the traps met here. Everything else is a link to the tool's
+documentation, not a restatement of it.
+
+**External claims.** A version, availability, default, limit, or policy claim about an
+external tool carries `(<URL>, checked YYYY-MM-DD)`, and the author opened that page on
+that date. A link that only explains a concept needs no date. An observed fact says so:
+"observed on this Mac with `<command>`, YYYY-MM-DD", or "observed in a cloud session with
+`<command>`, YYYY-MM-DD". A claim that is neither is dropped.
+
+**Commands that exist.** Every command a skill tells the reader to run works here today.
+A `just <recipe>` is written as typed (`just test-fast <filter>`) and `just check-harness`
+fails on one the `justfile` lacks, so prefer the recipe to the command inside it. Any
+other command, path, crate, type, error code, or environment variable the author runs or
+greps before committing; a pinned tool goes through `mise exec --`. A remote write
+(`git push`, a `gh api -X POST`, `just labels`) appears only with its condition from
+`AGENTS.md` › "Security and human approval"; a skill grants itself nothing.
+
+**Never taking over the machine.** Every step a skill tells an agent to run
+follows `AGENTS.md` › "Never taking over the machine": on its own an agent runs
+only what shows no window, takes no focus, raises no prompt, and takes over no terminal,
+with the tests, `just test-platform`, and `just logs` as its evidence. A human's recipe
+(`just test-local`, `just logs-follow`, `just install-cli`) is marked as one wherever a
+skill names it. A skill never has an agent run `myapp tui`, script another app, or
+start an installer or `sudo`; it hands the human the command instead.
+
+**For a reader new to Rust.** The human reviewing the pull requests a skill shapes may
+not read Rust fluently yet. Where a Rust rule would stop that reader, the same or the
+next sentence says why: what the compiler or clippy does otherwise, or what breaks
+later. A compiler error is named by code and plain meaning with its error-index page
+(E0382, use of a moved value: https://doc.rust-lang.org/error_codes/E0382.html). Terms
+follow `AGENTS.md`; any other is explained in a clause on first use. The language is
+linked, not taught (The Rust Book, https://doc.rust-lang.org/book/).
+
+**Sub-agent steps.** A step handed to `executor`, `architect`, `scout`, or `worker` names the tier
+by `subagent_type` and still works when the main session runs it inline.
+
+## Size
+
+Target 150 body lines per `SKILL.md` (after the closing `---`); `just check-harness`
+fails past 200. Past the target, move tables, long examples, and edge cases into
+`references/` and keep the decisions and the order of work in `SKILL.md`. The cap is far
+under the 500 lines the specification and Claude Code's page advise, because every line
+of an active skill competes with the task for the agent's context.
+
+## Scripts bundled inside a skill
+
+A script under `.claude/skills/<name>/scripts/` follows `.claude/rules/scripts.md`:
+Python on the standard library or shell, with its tests under the skill's
+`scripts/tests/`, which `just test-scripts` runs with no coverage floor. A skill whose
+first suite lands adds its line to the `test-scripts` recipe in the same pull request.
+**REQUIRED:** `writing-repo-scripts`. Keep it to the skill's own step: logic another
+recipe, hook, or CI job needs is a `cargo xtask` task, where `just test-xtask`'s floors
+measure it.
+
+## Before committing a skill
+
+A `SKILL.md` whose frontmatter does not parse, whose `name` differs from its directory,
+or that carries a key outside the allowed list looks fine in review and never loads. `just check-harness` covers the mechanical part,
+including no reference to this repository's issues or pull requests (`#` and digits, an
+issue or pull-request URL on this repository or relative to it, the word issue, PR, pull
+request, or merge request before a number, `GH-` and digits, or a `gh issue`/`gh pr`
+command given a number; an upstream project's issue URL or `owner/repo#N` passes as a
+source): a skill states the rule and its reason itself.
+
+```bash
+just check-harness
+mise exec -- typos .claude/skills/<name>
+```
+
+No check reads the description's wording, the 150-line target, the markers, whether an
+example is deletable, whether a cited page says what the skill says, or whether a
+non-`just` command runs. Read those yourself against the conventions above.
