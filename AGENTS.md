@@ -23,13 +23,39 @@ harness: without it, an agent implementing an issue here has no in-repo answer t
 this in scope?". The owner writes each bullet (the `starting-an-app` skill says how);
 `just check-harness` fails while one still holds its `TODO` marker.
 
-- **What it is, and who it is for** — TODO: one paragraph. The problem it solves, and
-  whose problem that is.
-- **The core interaction** — TODO: the one thing a user does most.
-- **Non-goals** — TODO: what this app deliberately does not do, even where it would be
-  easy. Moving anything from here to a goal is a human's decision, not an implementer's.
-- **Why it is shaped this way** — TODO: the reasoning behind the three entries above,
-  in the present tense; rewritten when the reasoning changes, not appended to.
+- **What it is, and who it is for** — `top` for Claude Code sessions on macOS. It lists
+  every running Claude Code session (terminal, desktop, and headless) with the processes
+  it started, heaviest first, by project. It marks what closed sessions left behind,
+  and stops or pauses a whole process tree in one confirmed action. It is for
+  developers on a laptop with little headroom who keep several sessions open; dev
+  servers, watchers, MCP servers and builds pile up, and neither Activity Monitor nor
+  htop says which session or project they belong to. It calls no LLM and needs no API
+  key. The requirements are in `docs/product/requirements.md`, the screens and keys in
+  `docs/product/ux-flows.md`, and the app-wide UX policy in `docs/design/ux-guidelines.md`.
+- **The core interaction** — run `loadtop`, see the heaviest session or leftover in the
+  first row, select it, and stop its tree (SIGTERM, then SIGKILL after 3 s) or pause it
+  (SIGSTOP, later SIGCONT), after a confirmation that names what is hit. A bare
+  `loadtop` opens the full-screen view; `--once` and `--json` print one sample and exit,
+  for scripts and screen readers, and never signal anything.
+- **Non-goals** — tokens, context, quota or cost; stopping anything automatically (no
+  daemon, hook, or LaunchAgent); waking a paused server when a connection arrives; load
+  history on disk (a later release); Codex or other agents (a later release); stop,
+  pause or resume commands without the on-screen confirmation; a guarantee for Windows
+  or Linux; cleaning up simulators, containers, or automation browsers; themes, a
+  palette of its own, or a settings screen; listing or acting on processes Claude Code
+  did not start (only their total load is shown); other users' or root's processes, and
+  any `sudo` path; showing environment variable values other than the session ID.
+- **Why it is shaped this way** — the pain is "which session is making my Mac slow, and
+  what did closed sessions leave behind", so the unit is the session and its tree, not
+  the process. htop shows processes one at a time and signals one PID at a time; loadtop
+  groups by session and acts on whole trees. It never signals on its own, and every
+  stop or pause confirms, because a tool that kills on a guess is worse than none; the
+  session process, loadtop, and loadtop's ancestors are protected by default. It must
+  itself stay light (at most 2% of one core and 30 MB at the default 2 s refresh), since
+  its users are short on headroom: so there is no resident recorder, and history is
+  left for later. Ownership comes from what Claude Code already leaves on each process
+  (documented environment markers, plus its session records when they validate), not
+  from a daemon of loadtop's own.
 
 ## Quick Reference
 
