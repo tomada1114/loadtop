@@ -10,11 +10,12 @@ a value a gate enforces is its config's, where running the gate is how you learn
 ## Overview
 
 This is a Rust command-line tool built from a strict template: one binary, `loadtop`,
-whose clap subcommands do the work and whose `loadtop tui` subcommand opens a full-screen
-ratatui view over the same core. It runs on macOS and Linux and is installed from its
-checkout with `cargo install --path`; there is no release pipeline. How it is built and
-why lives in the skills and in [Architecture](#architecture), never in a separate
-architecture or roadmap document (`updating-docs`).
+which opens a full-screen ratatui view when run bare and prints one sample with
+`--once` or `--json`, both over the same core (`designing-clis`). It targets macOS and
+also builds and tests on Linux, and is installed from its checkout with
+`cargo install --path`; there is no release pipeline. How it is built and why lives in
+the skills and in [Architecture](#architecture), never in a separate architecture or
+roadmap document (`updating-docs`).
 
 ## Product
 
@@ -120,7 +121,8 @@ opens a window or takes focus.
 - Dependencies point one way: `loadtop-platform` → `loadtop-core`, and both ← `loadtop`. Core
   never names clap, ratatui, or crossterm.
 - A port is a synchronous `Send + Sync` trait core declares, `loadtop-platform`
-  implements, the binary constructs, and a test fakes. Core never meets async.
+  implements, the binary constructs, and a test fakes. Core never meets async. Ports:
+  process table, sockets, session records, project folders, signals, clock.
 - The core boundary is enforced three times, so removing one layer leaves the others:
   core's `Cargo.toml` lists no OS or platform crate; `deny.toml`'s `[bans]`
   `wrappers` let only `loadtop` depend on `loadtop-platform`; and a harness check fails

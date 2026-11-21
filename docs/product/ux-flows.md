@@ -22,12 +22,15 @@
   partly paused subtree pauses the rest; paused rows are never folded away; nested
   sessions are left out of subtree actions; resuming something loadtop did not pause
   confirms.
+- Also decided at design time (2026-11-20): `/` filters the list without changing what
+  an action hits; group rows carry a 10-sample CPU trend in cells they left empty.
 
 ## 1. Screen inventory
 
 | # | Screen | Serves |
 |---|---|---|
-| S1 | Main view: header totals, the session/leftover list, a result row and a key bar | §3.1–3.3, §3.5 marks |
+| S1 | Main view: header totals, the session/leftover list, a result row and a key bar | §3.1–3.3, §3.5 marks, §3.8 trend |
+| S1f | Main view while filtering: the input line, then the filtered list | §3.7 |
 | S2 | Confirm stop, with three variants: subtree, probable leftover, session root | §3.4 |
 | S3 | Confirm pause, with warnings for ports and session children | §3.5 |
 | S3r | Confirm resume of processes loadtop did not pause | §3.5 |
@@ -50,10 +53,12 @@
 | `z` | Pause the selected subtree; resume it if every process in it is paused | S1 → S3; resume directly, or via S3r when something outside loadtop paused it |
 | `Z` | Pause or resume the session including its root | S1 → S3 (root variant) |
 | `s` | Toggle the sort key between CPU and memory | S1 |
+| `/` | Filter the list; `Enter` keeps it, `Esc` restores the previous one | S1 → S1f |
+| `Esc` | Clear an active filter | S1 |
 | `Enter` | Open the detail overlay | S1 → S5 |
 | `?` | Key help | S1 → S6 |
 | `q`, `Ctrl-C` | Quit (via S4 when anything this run paused is still stopped) | S1 |
-| `y` / `n`, `Esc` | Confirm / cancel; the default is No, so `Enter` alone cancels | S2, S3 |
+| `y` / `n`, `Esc` | Confirm / cancel; the default is No, so `Enter` alone cancels | S2, S3, S3r |
 
 Resuming what this run paused needs no confirmation: SIGCONT undoes that pause and loses
 nothing. A process stopped by something else (Ctrl-Z in a shell, a debugger) was stopped
@@ -62,7 +67,7 @@ on purpose, so resuming it confirms (S3r).
 ## 3. Wireframes
 
 Drawn at the minimum size, 80×24. Values are examples. Overlays are drawn with square
-corners here; they render with rounded borders (design-direction).
+corners here; they render with rounded borders (`building-tuis`' visual grammar).
 
 ### S1 Main view
 
@@ -70,16 +75,16 @@ corners here; they render with rounded borders (design-direction).
 loadtop  CPU Claude 3.1 cores · all 5.2 of 8   MEM Claude 2.9G · used 14.2/16G
 sort CPU (6s avg) · every 2s · 2 paused                                    1/14
     PID  NAME                              KIND    CPU%    MEM  PORTS STATE
-▾ desktop  acme-web · Fix checkout flow · busy    182.0   1.6G
+▾ desktop  acme-web · Fix checkout flow · busy    182.0   1.6G  ▂▃▅▇██▇█▇█
   91204  ├─ node vite                      tool   141.2   612M  5173
   91230  │  └─ esbuild --service           tool    38.9    96M
   81006  ├─ npm exec @playwright/mcp       mcp      1.4    88M
          └─ +6 more                                 0.5   310M
-▾ leftover  acme-api · closed session 8b41d0e7     96.3   740M
+▾ leftover  acme-api · closed session 8b41d0e7     96.3   740M  ▄▄▄▄▄▄▄▄▄▄
   52143  └─ zsh -c npm run test:watch      -        0.0     4M
   52150     └─ node vitest --watch         tool    96.3   736M
-▸ terminal  ~/code/notes · idle                    12.0   420M
-▾ leftover? code/…/api                              3.1    52M
+▸ terminal  ~/code/notes · idle                    12.0   420M  ▁▁▁ ▁▁▁▁▁▁
+▾ leftover? code/…/api                              3.1    52M        ▁▁▁
   60311  └─ sh -c ./watch.sh               -        3.1    52M
 ▸ headless  tmp/spike · busy                        0.4    90M
   71002  …  python -m http.server          tool     0.0    22M  8000  paused 4m
@@ -116,6 +121,35 @@ stopped 3 · already gone 1
   (from the left, `…/acme-api`). The kind word, `busy`/`idle` and the totals never
   go.
 - Heat colors (ux-guidelines) apply to process rows and to group totals alike.
+- The trend (requirements §3.8) sits on group rows in the PORTS and STATE cells, which
+  group rows leave empty: 10 block glyphs, newest on the right, one scale for every
+  shown group. A group seen for fewer than 10 samples shows only those, right-aligned
+  (the probable leftover above appeared 6 s ago). It has no color.
+
+### S1f Filtering
+
+```
+loadtop  CPU Claude 3.1 cores · all 5.2 of 8   MEM Claude 2.9G · used 14.2/16G
+sort CPU (6s avg) · every 2s · 1 paused · filter "vite" · 1 of 5         1/4
+    PID  NAME                              KIND    CPU%    MEM  PORTS STATE
+▾ desktop  acme-web · Fix checkout flow · busy    182.0   1.6G  ▂▃▅▇██▇█▇█
+  91204  ├─ node vite                      tool   141.2   612M  5173
+         └─ +8 hidden                                40.8   1.0G
+  71002  …  python -m http.server          tool     0.0    22M  8000  paused 4m
+
+/ vite█
+ ⏎ keep  esc undo  ^U clear
+```
+
+- While typing, the result row is the input and the key bar shows the input's keys;
+  list keys do not act (requirements §3.7). Once kept with `Enter`, the key bar returns
+  and line 2 keeps `filter "vite" · 1 of 5` (groups shown of all). Filter text longer
+  than 16 characters is cut with `…` on line 2; the input line shows it whole.
+- Totals stay whole-tree: the group row says 182.0 although only one child is shown.
+- The paused `python -m http.server` does not match and is still shown, lifted with `…`
+  (ux-guidelines Principle 3). It counts as shown, not hidden.
+- A filter that matches nothing shows `No group matches "vite".` in the list area, with
+  any paused process still listed below it.
 
 ### S2 Confirm stop
 
@@ -135,6 +169,8 @@ Subtree (the default variant):
 ```
 
 - Up to 5 processes are listed, heaviest first; beyond that, `and N more` (§3.4).
+- With a filter active and members of the target hidden by it, a line says so:
+  `Includes 4 processes hidden by the filter.` The count and the list cover them.
 - When the target contains a live nested session, a line names it: `Skipped: 1 nested
   session (headless · tmp/spike). Select it to act on it.`
 - The count is the one at opening. At `y` the target is resolved again; the result row
@@ -161,6 +197,10 @@ Subtree (the default variant):
 └───────────────────────────────────────────────────────────────┘
 ```
 
+- The dialog opens at once with the ports from the last read; its port lines update
+  when the fresh read it asked for lands (the one exception to the overlay freeze). When
+  ports cannot be read, the line says `! Ports could not be read; a listening server
+  will hang its clients.`
 - The port line appears only when a target listens. The session line appears only when
   the targets belong to a live session (§3.5 Pause confirmation).
 - Session-root variant (`Z`): `Pause the whole session, including Claude Code itself?`,
@@ -218,8 +258,10 @@ Subtree (the default variant):
 
 ### S6 Key help
 
-The §2 key table, in an overlay, plus one line: `CPU% is a share of one core; header
-CPU is in cores.` `Esc` or `?` closes it.
+The §2 key table, in an overlay, plus three lines: `CPU% is a share of one core; header
+CPU is in cores.`, `MEM is resident memory (RSS); Activity Monitor's Memory counts
+differently.`, and `Order uses a 6 s average; the trend shows the last 20 s.` (both
+durations follow `--interval`). `Esc` or `?` closes it.
 
 ### S7 Empty and too-small states
 

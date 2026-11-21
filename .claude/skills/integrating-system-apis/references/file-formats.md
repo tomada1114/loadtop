@@ -5,6 +5,11 @@ contract and what is private"): a new version still reads what an earlier one wr
 Where the directories come from is `loadtop-platform`'s `paths.rs` (the table in the
 skill body); this page is what goes in them.
 
+loadtop writes no file of its own: no state, no settings, no history (requirements §4
+and §5). Its only files are the log files below. The `--json` output is command-line
+contract, not a file format (`designing-clis`). Load history, planned for a later
+release, would be the first file of its own, and a design change.
+
 ## `counter.json`
 
 In `~/Library/Application Support/<bundle id>/` on macOS and `$XDG_DATA_HOME/loadtop/`

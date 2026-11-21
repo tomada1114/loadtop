@@ -26,6 +26,10 @@
 
 - One screen (S1) with modal overlays (S2–S6). At most one overlay is open at a time.
   `Esc` closes it and returns the selection to where it was.
+- `Esc` steps back one level and never quits: it closes an overlay, ends the filter
+  input (restoring the previous filter), or clears an active filter, in that order.
+- The filter input (S1f) is a text mode, not an overlay: the list stays live behind it
+  and keeps refreshing, and only `Ctrl-C` among the list's keys still acts.
 - While an overlay is open, the list behind it is frozen: sampling continues, but order
   and values do not change under it. A confirmation shows the values from when it
   opened; the start-time check at signal time (requirements §3.4) covers the gap.
@@ -37,18 +41,25 @@
 - Raw mode on the alternate screen; the terminal is restored on quit, on error and on
   panic (`building-tuis` › "The terminal's lifecycle"). It refuses to start the TUI when
   stdin or stdout is not a terminal, and points to `--once`/`--json` instead.
-- `Ctrl-C` quits, the same as `q`, including the quit prompt's rules (ux-flows S4).
+- `Ctrl-C` quits, the same as `q`, including the quit prompt's rules (ux-flows S4). In
+  an overlay, `q` closes or cancels it like `Esc`, and `Ctrl-C` cancels it and starts the
+  quit. Below 80×24 only `q` and `Ctrl-C` act.
 - Minimum 80×24. Any resize redraws at once; below the minimum, the too-small line is
   shown (ux-flows S7).
 - Text uses the terminal's font. Glyphs are limited to box drawing (`├─ └─ │`), the
-  fold arrows `▸ ▾`, and `…`. There are no emoji, since their width differs between
-  terminals and breaks the columns.
+  fold arrows `▸ ▾`, `…`, `·`, `—`, the key glyphs `⏎ ←→`, and the eight block elements
+  `▁▂▃▄▅▆▇█` of the trend (requirements §3.8). Box drawing, block elements, `…`, `·`,
+  `—` and the arrows are East Asian Ambiguous width (observed with Python's
+  `unicodedata.east_asian_width`, 2026-11-20): a terminal set to draw ambiguous
+  characters wide breaks the columns for all of them alike, and that setting is not
+  supported. There are no emoji, since their width differs between terminals and
+  breaks the columns.
 
 ## States
 
 | State | Trigger | Shows | Primary action | Copy pattern |
 |---|---|---|---|---|
-| First frame | Launch; CPU% needs a second read | Tree and memory at once; CPU% `…` for one interval | — | — |
+| First frame | Launch; CPU% needs a second read | Tree and memory at once; CPU% `…` for about 300 ms | — | — |
 | No session | No live Claude Code session | The empty message (ux-flows S7); leftovers if any | `q` | "No Claude Code session is running." |
 | Leftovers only | No session, with leftovers | The list, leftovers only | `x` | — |
 | Field unreadable | Env or cwd not readable (platform binary, exited) | `-` in that cell, dimmed | — | — |
@@ -67,6 +78,8 @@
 | First sample | Two reads 300 ms apart, so CPU% is real within about 0.3 s of launch |
 | Order | By the mean CPU% (or memory) of the last 3 samples; the CPU% column shows the latest. The header says `sort CPU (6s avg)` |
 | Signal actions | The result row shows `stopping N…` within 100 ms of `y`, then the result once SIGKILL escalation finishes, at most 3.5 s later |
+| Quitting during a stop | `q` or `Ctrl-C` while a SIGKILL escalation is pending shows `finishing stop… (Ctrl-C again to kill now)` and quits once it has run, at most 3 s later; a second `Ctrl-C` sends SIGKILL to the survivors at once. Either way the quit then follows S4's rules. The confirmation's "SIGKILL after 3 s" is never dropped |
+| `Ctrl-C` twice | A second `Ctrl-C` within 1 s always means "now": in S4 it leaves the processes paused and quits; during a stop's grace it kills the survivors at once |
 | Result line | Stays until the next key press; it is never auto-dismissed, so a result is not missed during the 2 s redraws |
 | Confirmations | Every stop and pause confirms, defaulting to No (`Enter` alone cancels). The session-root variants confirm with `Y`, not `y` |
 | Resume | No confirmation for what this run paused; a confirmation (ux-flows S3r) when any target was stopped by another tool. The result goes to the result row |
@@ -99,6 +112,7 @@ says.
 | Not targetable | `self` | Dim |
 | Unreadable field | `-` | Dim |
 | Dialog warnings | the leading `!` | Yellow |
+| Trend | — (supplementary; the row's numbers carry the value) | None |
 
 - No color when `NO_COLOR` is set (any value, per no-color.org), when `TERM=dumb`, or
   when stdout is not a terminal (`--once` piped). Modifiers stay in the TUI; `--once`
@@ -141,6 +155,7 @@ units.
 | 2026-11-20 | After review: resuming something loadtop did not pause confirms; the target is re-resolved at confirm; a 300 ms first sample; order by a 3-sample mean; a fixed result row and key bar; paused rows never folded | Resume always without a dialog; a 2 s blank first frame; instantaneous order | A job stopped on purpose must not be resumed by accident; the top row should not flap; `building-tuis` wants every action named on screen |
 | 2026-11-20 | No mouse in v1 | Wheel scroll and click to select | Keeps the terminal's text selection for copying PIDs |
 | 2026-11-20 | Box drawing for the tree, words for states, no emoji | ASCII only; emoji marks | Every macOS terminal draws box characters; emoji widths break columns |
+| 2026-11-20 | A `/` filter that never changes what an action hits, and a 10-sample CPU trend on group rows | No filter; a trend per process; a trend in its own column | Many sessions need narrowing; an action still hits the whole subtree and the confirmation counts hidden members, so the filter never changes what is signaled. Group rows had empty cells for the trend; a trend per process or a column of its own costs width the 80-column layout does not have |
 
 ## Open items
 

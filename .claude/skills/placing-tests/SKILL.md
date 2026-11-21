@@ -29,6 +29,8 @@ fewest machines while still able to fail for the behavior:
 | The same contract against the real adapter | `crates/loadtop-platform/tests/contracts.rs` | `just test-core` and `just test-platform` | none |
 | What one adapter does beyond the contract | `crates/loadtop-platform/tests/<adapter>.rs`, or the adapter's own `#[cfg(test)]` module for a pure helper (`paths.rs`) | `just test-core`, `just test-platform` | none |
 | An adapter behavior that needs a GUI session, a TCC grant, or the Keychain | the same file, `#[ignore = "local machine: <what it needs>"]` | `just test-local`, a human's recipe | none |
+| loadtop's load budget (requirements §4: 2% of one core, 30 MB): 30 samples of the real process table, CPU time per sample and RSS | `crates/loadtop-platform/tests/load_budget.rs`, `#[ignore = "local machine: real process table"]`, since CI timing is too noisy to gate on | `just test-local`, a human's recipe, before each release; the output goes in the release's pull request | none |
+| The work one refresh does (drawing bounded by the visible rows, classification linear in processes) | core tests that count rows drawn or nodes visited for a 5,000-process sample, never a timer | `just test-core` | core's floors |
 | The `loadtop` command line: arguments, streams, exit codes | `crates/loadtop/tests/cli.rs`, the built binary with a temporary `HOME` | `just test-core`, `just test-platform` | none |
 | The binary's wording for each error variant | `#[cfg(test)] mod tests` in `crates/loadtop/src/wording.rs`, one test per variant | `just test-core`, `just test-platform` | none |
 | How a terminal key event becomes core's key | `#[cfg(test)] mod tests` in `crates/loadtop/src/tui/mod.rs` | `just test-core`, `just test-platform` | none |

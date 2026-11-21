@@ -1,10 +1,11 @@
 ---
 name: building-tuis
 description: >
-  The full-screen terminal UI behind the tui subcommand: the screen's state, actions,
-  and keys in core, the ratatui and crossterm loop and view in the binary's src/tui/,
-  restoring the terminal on every way out, and TestBackend view tests. Use when adding
-  or changing a screen, a key binding, a widget, a style, or the event loop, when a
+  The full-screen terminal UI a bare loadtop opens: the screen's state, actions, and
+  keys in core, the ratatui and crossterm loop, refresh tick, sampler thread, and view
+  in the binary's src/tui/, the visual grammar and colors, the filter input, restoring
+  the terminal on every way out, and TestBackend view tests. Use when adding or
+  changing a screen, a key binding, a widget, a style, or the event loop, when a
   TestBackend test fails, or when asked to run or look at the TUI.
 paths:
   - "crates/loadtop/src/tui/**"
@@ -58,10 +59,10 @@ real terminal.
 
 `tui::run` is the pattern; copy its order rather than rewriting it.
 
-1. **Refuse before touching anything.** `main.rs`'s `tui()` checks that stdin and
-   stdout are both terminals (`IsTerminal`) and otherwise prints `error: …` and exits 1,
-   before it opens the store or the log. Without the check, a script or CI job would
-   hang waiting for a key.
+1. **Refuse before touching anything.** `loadtop` with neither `--once` nor `--json`
+   checks that stdin and stdout are both terminals (`IsTerminal`) and otherwise prints
+   `error: …`, pointing at `--once`/`--json`, and exits 1, before it samples anything or
+   opens the log. Without the check, a script or CI job would hang waiting for a key.
 2. **Log to the file only.** A line written to stdout or stderr while the screen owns
    the terminal corrupts the frame, so the TUI composes with `compose(false)`.
 3. **Install the panic hook first**, then enter raw mode and the alternate screen. The
@@ -74,17 +75,80 @@ real terminal.
 5. **Report after restoring.** An `io::Error` from the loop becomes
    `wording::TERMINAL_FAILED` on stderr and exit 1, printed on the restored screen.
 
-The loop draws, blocks on `event::read()`, translates a key press with `screen_key`,
-and hands the action to `update`. A resize or any other event just redraws. Only a
+The loop draws, waits for a key or the next deadline, translates a key press with
+`screen_key`, and hands the action to `update`. A resize or any other event just
+redraws. Only a
 press counts (`KeyEventKind::Press`), so a terminal that also reports releases or
 repeats never acts twice on one key. ratatui reaches crossterm only as
 `ratatui::crossterm`, so the two never disagree on a version; the API is ratatui's
 (<https://docs.rs/ratatui/latest/ratatui/>).
 
-A timer, a tick, or watching a file for another process's change is not in the sample.
-Add it as an action the loop produces (a tick becomes a `ScreenAction`), with the time
-handed to core as a value; core still never sleeps or reads the clock
-(`designing-core-logic`).
+## Refresh, sampling, and the stop grace
+
+loadtop's screen changes without a key: a sample is due every interval, and a stop
+escalates to SIGKILL 3 s after SIGTERM. Core decides when each is due and what it does;
+the binary only waits until then and carries values both ways. Core still never
+sleeps, reads the clock, or starts a thread (`designing-core-logic`).
+
+- **Every action carries `now`.** The binary reads the `Clock` port once per wake-up
+  and hands the instant with the action: `update(self, action, now)`. Due-ness (a
+  sample, an escalation, S4's 1 s double `Ctrl-C`) is then a comparison in core,
+  testable with plain numbers.
+- **Core names the next deadline and the next request.** After each update the screen
+  answers `next_deadline()` (the earliest of the next sample and any pending
+  escalation) and, once it has passed, `sample_request()`: a sample, with or without
+  ports (core counts samples for the every-third-sample port cadence and asks for ports
+  when a confirmation opens). The binary computes nothing about either.
+- **A sampler thread the binary owns** executes requests. One `std::thread` in
+  `crates/loadtop/src/tui/` holds the platform's process-table and socket sources,
+  takes a request from a `std::sync::mpsc` channel, samples, and sends the finished
+  sample back on a second channel. A sample costs about 20 ms of CPU and `lsof` about
+  20 ms more (`integrating-system-apis`' process-sources reference), so on the loop it
+  would freeze keys that long every refresh; on its own thread a key is handled within
+  a frame. Dropping the request `Sender` ends the thread.
+- **One wait.** The loop calls `event::poll(next_deadline - now)`. A key becomes its
+  `ScreenAction`; at the deadline it sends `sample_request()`; each arrived sample
+  (`try_recv`) becomes `ScreenAction::Sampled(sample)`. A sample that arrives late is
+  just applied late; a sample that has not arrived by the next deadline is not
+  requested twice. A disconnected channel (the thread panicked or failed) is fatal:
+  the loop leaves through `leave()` and prints the sample error, exit 1.
+- **The grace is core's plan, run by the loop.** At `y` core asks for a sample now and,
+  when it arrives, resolves the target and returns the signals to send, plus a pending
+  escalation (its deadline and the original set). The binary sends them through the
+  signal port and returns the results as an action. Each later `Sampled` lets core
+  handle every escalation that is due: survivors are the original (pid, start time)
+  set still alive and not zombies, plus their current descendants. Several stops can be
+  pending at once; each keeps its own deadline. Who decides survivors and the order of
+  signals is `designing-core-logic` › "loadtop's core".
+- **Leaving during a grace** (signed off 2026-11-20): `q` or `Ctrl-C` shows `finishing
+  stop… (Ctrl-C again to kill now)` and quits once every pending escalation has run,
+  at most 3 s later, through the normal quit (S4 when something this run paused is
+  still stopped). A second `Ctrl-C` within that wait sends SIGKILL to the survivors at
+  once and goes on to the same quit. The promise S2 made, SIGKILL after the grace, is
+  kept either way, and the terminal is never held longer than 3 s.
+- **The overlay freeze is core's.** While an overlay is open, samples still arrive and
+  core keeps them, but the view it returns does not change under the overlay
+  (ux-guidelines › Navigation). The one exception is a confirmation's port lines,
+  which update when the read it asked for lands.
+
+## Keys and modes
+
+`ScreenKey` names every key ux-flows §2 lists and the filter input's keys: characters,
+the arrows, `PgUp` `PgDn` `Home` `End`, `Enter`, `Esc`, `Backspace`, and the
+`Ctrl-U`, `Ctrl-D`, and `Ctrl-C` chords (`Interrupt`). Each mode has its own key table in
+core, so the key bar and `?` help are built from data in every mode:
+
+- **The filter input** (requirements §3.7) is a text mode of core's screen, not a second
+  widget library: `ScreenKey::Char` is text there, and only `Enter`, `Esc`,
+  `Backspace`, `Ctrl-U`, and `Ctrl-C` act. The filter changes what is drawn and never
+  what an action targets: targets are resolved from the full sample.
+- **Overlays** (S2–S6): `Esc` and `q` close or cancel; `Ctrl-C` cancels the overlay and
+  starts the quit. In S4, `Ctrl-C` means Back, and a second one within 1 s leaves
+  (ux-flows S4).
+- **Too small** (below 80×24): only `q` and `Ctrl-C` act.
+
+No state holds the terminal: from anywhere, pressing `Ctrl-C` repeatedly leaves within
+at most 3 s (the longest is a pending stop's grace).
 
 ## Drawing
 
@@ -92,15 +156,21 @@ handed to core as a value; core still never sleeps or reads the clock
   nothing. A condition that is about the domain (is this an error? is it at the
   bound?) is a method on the core screen that `draw` asks.
 - Lay out with `Layout` and `Constraint`, and draw the whole frame each pass.
-  A terminal smaller than the layout clips; it must not panic
+  A terminal smaller than the layout must not panic; below 80×24 loadtop draws only
+  the too-small line (ux-flows S7)
   (`a_terminal_too_small_for_the_screen_clips_it_without_panicking`).
 - Words: labels a screen owns are private `const`s at the top of `view.rs`; an error's
   wording comes from `wording.rs`, the same sentence the subcommand prints, so the CLI
   and the TUI never describe one failure two ways.
-- Style: the terminal's own foreground and background, with `Style` modifiers for
-  emphasis, kept as `const`s beside the labels (`ERROR_STYLE` is bold). No color carries
-  meaning alone: the error line says "Error:" as well as being bold, so it reads in a
-  light or dark terminal and in a monochrome one.
+- Style: the terminal's own foreground and background, the 16 named ANSI colors
+  (`Color::Yellow`, `Color::Red`, `Color::Cyan`; never `Color::Rgb` or `Color::Indexed`),
+  and `Style` modifiers, kept as `const`s beside the labels (`ERROR_STYLE` is bold).
+  Named colors are the user's own theme, so the screen reads in a light or dark terminal;
+  a palette of the tool's own is a design change. No color carries meaning alone: each
+  colored element repeats a word or a number (ux-guidelines › Color and emphasis), and
+  with `NO_COLOR` set or `TERM=dumb` the view drops colors and keeps modifiers.
+- Layout: **REQUIRED:** [references/visual-grammar.md](references/visual-grammar.md)
+  for the columns, glyphs, folding, overlays, and the trend, before drawing a row.
 
 ## Testing without a terminal
 
@@ -121,13 +191,14 @@ handed to core as a value; core still never sleeps or reads the clock
   be read, the error cleared by the next success, and a terminal too small. The expected
   lines are written out by hand, border included.
 - No test calls `run`, `enter`, or `event::read`: the loop is the gap, kept small for
-  that reason, and a human running `loadtop tui` is its check.
+  that reason, and a human running `loadtop` is its check.
 
 ## Never taking over the developer's terminal
 
 `AGENTS.md` › "Never taking over the machine" holds for terminals too. No check,
 hook, or step an agent runs on its own enables raw mode, enters the alternate screen,
-reads a key from a real terminal, or runs `loadtop tui`. Running the screen is a human's
+reads a key from a real terminal, or runs `loadtop` without `--once` or `--json`.
+Running the screen is a human's
 step: when a change shows only in a real terminal (the restore after a crash, a resize,
 how it looks), ask the human once to run it and say what to press and what to look for
 (**REQUIRED:** `running-the-app`). The real-terminal loop has no automated test, not

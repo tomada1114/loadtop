@@ -41,6 +41,17 @@ and return plain data. Every decision (when to ask for a grant, what a blocked s
 shows, what a result means) is core's, tested with the fake; a new port is a design
 change (`AGENTS.md` › "Before changing the architecture").
 
+## loadtop's sources
+
+loadtop reads the process table and sends signals through `sysinfo` (the one binding
+crate, signed off 2026-11-20), reads listening ports with macOS's `lsof`, and reads
+Claude Code's undocumented session records and project folder names with `std::fs`.
+None needs `unsafe` of ours or a TCC grant. **REQUIRED:**
+[references/process-sources.md](references/process-sources.md) before changing any of
+those adapters: it holds each port's promise, the refresh policy that keeps a scan near
+20 ms, the identity re-check before every signal, and why the alternatives (`netstat2`,
+`libproc`, a new crate for `kill`) were rejected.
+
 ## Each OS gets its adapter
 
 `loadtop-platform` builds and runs its tests on macOS and Linux: `just test-platform` runs

@@ -14,8 +14,8 @@ description: >
 laid out, what a handler may do, which stream gets what, the exit codes, the wording
 module, machine-readable output, where configuration is resolved, the binary's logging,
 and how the binary is tested. **Does not own:** the decision a subcommand runs (`designing-core-logic`); the
-error enum behind a failure (`designing-errors`); the full-screen `tui` subcommand
-(`building-tuis`); the body of a test (`writing-tests`) or its file (`placing-tests`);
+error enum behind a failure (`designing-errors`); the full-screen screen a bare
+`loadtop` opens (`building-tuis`); the body of a test (`writing-tests`) or its file (`placing-tests`);
 seeing the binary run (`running-the-app`); a new crate or crate feature
 (`managing-dependencies`).
 
@@ -32,6 +32,16 @@ derive API declares a subcommand as a type and gives `--help`, `--version`, and 
 errors (exit 2) for free. Replacing clap, or a clap major, is a design change
 (`AGENTS.md` › "Before changing the architecture"). The binary also owns logging:
 **BACKGROUND:** [references/logging.md](references/logging.md).
+
+## loadtop's command line
+
+One command, no subcommand: a bare `loadtop` opens the screen, `--once` and `--json`
+print one sample, and `--interval` sets the screen's refresh. No flag signals anything.
+**REQUIRED:** [references/loadtop-command-line.md](references/loadtop-command-line.md)
+before changing a flag, an exit code, or the `--json` document: it holds the
+invocation table, why there is no subcommand, and the literal JSON shape `cli.rs` pins.
+The rest of this skill is how the binary is built, and still uses the template's sample
+subcommands as its examples.
 
 ## The shape: parse, compose, call core, print
 
@@ -88,7 +98,7 @@ a user can now type something new.
 | Code | Means | Who returns it |
 |---|---|---|
 | 0 | success, including `--help` and `--version` | the handler, `ExitCode::SUCCESS`; clap for help and version |
-| 1 | the action failed: a bound, storage, no `HOME`, no terminal for `tui`, stdout unwritable | the handler, `ExitCode::FAILURE`, after printing `error: …` |
+| 1 | the action failed: the process table unreadable, no `HOME`, no terminal for the screen, stdout unwritable | the handler, `ExitCode::FAILURE`, after printing `error: …` |
 | 2 | a usage error: an unknown subcommand or flag, a missing one | clap, with its message and usage on stderr, before any adapter is touched |
 
 - `main` returns `ExitCode`; nothing calls `std::process::exit`, which ends the process
@@ -102,7 +112,7 @@ a user can now type something new.
 ## The wording module
 
 `crates/loadtop/src/wording.rs` holds every sentence `loadtop` writes to stderr and the
-error line the `tui` screen shows. Core returns a variant and never a sentence
+error line the screen shows. Core returns a variant and never a sentence
 (`designing-errors`), so the words live in one place:
 
 - A fixed sentence is a `pub const` with a `///` saying when it prints
@@ -118,7 +128,7 @@ error line the `tui` screen shows. Core returns a variant and never a sentence
 
 ## `--json`, when a script reads the output
 
-The sample has no `--json`; add one only when a tool's output is consumed by a program.
+`loadtop --json` is the one machine-readable output; requirements §3.6 lists its fields.
 
 - A flag on the subcommand that prints a view: one JSON document on stdout, the same
   exit codes, and diagnostics still on stderr. A failure stays `error: <wording>` on
@@ -130,9 +140,13 @@ The sample has no `--json`; add one only when a tool's output is consumed by a p
   process's saves), which may mean an output type of its own.
 - The JSON is contract from its first release: pin it with a literal `json!({ … })` or
   string test in `cli.rs`, and add a field rather than rename one.
-- `loadtop` does not depend on `serde_json` today; adding it to `crates/loadtop/Cargo.toml`
-  is a dependency change even though the workspace already pins a version.
-  **REQUIRED:** `managing-dependencies`.
+- **loadtop's document** — snake_case keys, `schema_version` first, its own type in
+  core, and the literal shape — is in
+  [references/loadtop-command-line.md](references/loadtop-command-line.md).
+- The binary prints it with `serde_json`, which the workspace already pins and
+  `loadtop-platform` already uses. Adding it to `crates/loadtop/Cargo.toml` was signed
+  off by the owner on 2026-11-20; its pull request still carries the review record
+  (**REQUIRED:** `managing-dependencies`).
 
 ## Configuration and the environment
 

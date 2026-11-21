@@ -151,10 +151,19 @@ reading the clock is banned, not representing time.
   view, so the file format and the output can change independently. A view that a
   `--json` flag prints derives `Serialize` with `#[serde(rename_all = "camelCase")]`,
   and then its JSON is contract as the file format is (`AGENTS.md` › "What is contract
-  and what is private").
+  and what is private"). loadtop's `--json` report is the exception: its keys are
+  snake_case, as `designing-clis` › "`--json`, when a script reads the output" says.
 - Input arrives already typed: the binary parses arguments with clap and keys into
   core's own enum, so core takes enums rather than strings for closed sets.
 - A failure leaves as a variant, never a sentence (`designing-errors`).
+
+## loadtop's core
+
+Six ports (process table, sockets, session records, project folders, signals, clock);
+one sample as the unit of input, from which pure functions compute everything shown;
+actions returned as plans the binary carries out. **REQUIRED:**
+[references/loadtop-core.md](references/loadtop-core.md) before adding a rule about
+sessions, leftovers, targets, signals, or a `Tuning` field.
 
 ## Deliberately not adopted
 

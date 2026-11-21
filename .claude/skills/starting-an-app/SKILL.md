@@ -82,6 +82,11 @@ A configuration file, an environment variable the tool reads, or a `--json` form
 output is part of its command-line contract (`designing-clis`); a settings file is a
 persistence decision too (below).
 
+**loadtop's shape:** a screen with flags and no subcommand. A bare `loadtop` opens the
+screen, and `--once` and `--json` print one sample for a script or a screen reader
+(`designing-clis` › "loadtop's command line"). The screen's state and keys stay in core
+as above, and the counter's subcommands and `tui` subcommand go with the sample.
+
 ## Decide where it keeps state
 
 The sample keeps `counter.json` where each system expects an app's data:
@@ -92,6 +97,11 @@ directories, so they are fixed once the tool has run anywhere a user's data live
 Decide the app's own files — where, in what format, with what version field — as soon
 as it keeps state of its own, and write it down (below). A privacy (TCC) permission the
 tool will need on macOS is decided here too (`integrating-system-apis`).
+
+**loadtop keeps no state and needs no TCC grant.** It writes only its logs, in the log
+directory the bundle identifier keys; the data directory and `app_data_dir` go with the
+counter store. Load history, a later release, would be its first file
+(`integrating-system-apis`' `references/file-formats.md`).
 
 ## Write the first decisions down
 
@@ -124,6 +134,11 @@ the sample and the search that ends it. On top of it:
   and `tdd/SKILL.md` Steps 1-3;
 - replace the core module and its tests in the same pull request that removes them, so
   the core coverage floor still measures real code.
+- in loadtop, remove the optional model-call layer with it: the `openrouter` feature,
+  its adapter and `llm` subcommand, core's `generation` module, the `dotenvy` and `ureq`
+  entries, `docs/openrouter.md`, and every sentence that points at them (the `AGENTS.md`
+  Architecture bullet, `updating-docs`' docs table, README, CONTRIBUTING). loadtop calls
+  no model and needs no key (`AGENTS.md` › Product).
 
 Keep what is general: the `Clock` port and `SystemClock`, logging and its directories,
 the binary's `compose` and exit-code convention, the wording module's shape, and, for a
