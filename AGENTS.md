@@ -132,8 +132,7 @@ opens a window or takes focus.
 - I/O, time, the environment, and processes reach core only through ports or arguments,
   and core never sleeps or starts a thread that outlives the call:
   `crates/loadtop-core/clippy.toml` lists the banned calls, and `just lint` enforces it.
-- Core logs nothing and builds no user-facing sentence. The optional model calls (the
-  `openrouter` feature) are `docs/openrouter.md`'s.
+- Core logs nothing and builds no user-facing sentence.
 - `target/` and `coverage/` are build output: never edit or commit them.
 
 ### What is contract and what is private

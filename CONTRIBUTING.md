@@ -9,9 +9,7 @@ repository, which commands to run, and how a change gets merged.
   platform tests on each.
 - On a Mac, the Xcode Command Line Tools (`xcode-select --install`); the full Xcode app
   is not needed. On Linux, a C toolchain for the linker (`build-essential` on Debian and
-  Ubuntu), and `pkg-config` and `libssl-dev` for the OpenSSL headers: the `openrouter`
-  feature's TLS links the system OpenSSL, and `just lint`, `just test-core`, and
-  `just test-platform` build with every feature on.
+  Ubuntu).
 - [rustup](https://rustup.rs/). It installs the toolchain `rust-toolchain.toml` pins
   (with clippy, rustfmt, and `llvm-tools`) the first time `cargo` runs.
 - [mise](https://mise.jdx.dev/), which installs every other pinned tool from `mise.toml`:
@@ -35,8 +33,8 @@ just install   # mise install, lefthook install, verify-hooks
 A Claude Code cloud session (claude.ai/code) skips all of the above: the VM is
 provisioned by its environment's setup script and by the `SessionStart` hook the
 committed `.claude/settings.json` registers, which run `.claude/cloud/provision.sh` in
-place of `just install` (it installs the Debian packages, `pkg-config` and `libssl-dev`
-among them, the pinned tools, and lefthook's hook).
+place of `just install` (it installs the Debian packages `.claude/cloud/apt-packages.txt`
+lists, the pinned tools, and lefthook's hook).
 [Getting Started](docs/getting-started.md#cloud-sessions) has the detail. No human is at
 that VM, so an agent there never runs a recipe or a step that needs one: it leaves it
 unrun and says in the pull request that it needs a local run.
@@ -71,10 +69,8 @@ just check          # the local gate, in CI's order; its steps are listed below
 test-platform. It opens no window, takes no focus, raises no prompt, and takes over no
 terminal.
 
-`just lint` checks all Cargo features. `just test-core` and `just test-platform` test
-both default builds and the optional OpenRouter build, using local HTTP fixtures and
-synthetic credentials. On Linux these checks also need the OpenSSL development
-headers and `pkg-config`; see [OpenRouter](docs/openrouter.md).
+`just lint` checks all Cargo features, and `just test-core` and `just test-platform` test
+both the default build and the build with every feature on.
 
 These recipes are for a human and are never part of `just check`; an agent runs them
 only when you ask, and never in a cloud session:

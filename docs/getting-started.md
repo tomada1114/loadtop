@@ -5,9 +5,7 @@
 - A Mac with Apple Silicon, or Linux.
 - On a Mac, the Xcode Command Line Tools (`xcode-select --install`); the full Xcode app
   is not needed. On Linux, a C toolchain for the linker (`build-essential` on Debian and
-  Ubuntu), and `pkg-config` and `libssl-dev` for the OpenSSL headers the `openrouter`
-  feature's TLS links against: `just lint`, `just test-core`, and `just test-platform`
-  build with every feature on.
+  Ubuntu).
 - [rustup](https://rustup.rs/), [mise](https://mise.jdx.dev/), and
   [Just](https://just.systems/man/en/) (`brew install mise just`). mise must be at least
   the release `mise.toml`'s `min_version` names, the one CI pins; an older mise refuses
