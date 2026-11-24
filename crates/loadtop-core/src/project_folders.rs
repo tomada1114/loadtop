@@ -37,8 +37,8 @@ pub fn encode_project_path(path: &Path) -> String {
         .collect()
 }
 
-/// Whether `cwd` is inside a project: `cwd` or one of its ancestors, never `home` and
-/// never `/`, encodes ([`encode_project_path`]) to exactly the encoding of a live
+/// Whether `cwd` is inside a project: `cwd` or one of its ancestors, never `home`, an
+/// ancestor of `home` (such as `/Users`), or `/`, encodes ([`encode_project_path`]) to exactly the encoding of a live
 /// session's cwd or to a project folder name. Each ancestor matches exactly, so
 /// `~/foo-bar` is not inside `~/foo`.
 #[must_use]
@@ -54,7 +54,9 @@ pub fn is_inside_project(
         .collect();
     cwd.ancestors()
         .filter(|ancestor| {
-            *ancestor != home && ancestor.parent().is_some() && !ancestor.as_os_str().is_empty()
+            !home.starts_with(ancestor)
+                && ancestor.parent().is_some()
+                && !ancestor.as_os_str().is_empty()
         })
         .map(encode_project_path)
         .any(|encoded| live.contains(&encoded) || folder_names.contains(&encoded))
@@ -139,6 +141,16 @@ mod tests {
                 &["/Users/ann"],
                 &["-Users-ann"]
             ));
+        }
+
+        #[test]
+        fn an_ancestor_of_home_is_never_a_project() {
+            assert!(!inside("/Users/ann/Downloads", &["/Users"], &["-Users"]));
+        }
+
+        #[test]
+        fn a_project_outside_home_still_matches() {
+            assert!(inside("/opt/acme/src", &[], &["-opt-acme"]));
         }
 
         #[test]
