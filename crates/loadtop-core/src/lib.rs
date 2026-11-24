@@ -10,7 +10,6 @@
 #![deny(clippy::wildcard_enum_match_arm)]
 
 pub mod counter;
-pub mod generation;
 pub mod process_table;
 pub mod project_folders;
 pub mod sample;
@@ -23,10 +22,6 @@ pub mod tuning;
 pub use counter::{
     Counter, CounterError, CounterScreen, CounterService, CounterView, ScreenAction, ScreenKey,
     StorageError, StorageErrorKind, StoredCounter, Tuning, TuningError, store::CounterStore,
-};
-pub use generation::{
-    GenerationError, GenerationRequest, GenerationService, GenerationSettings, GenerationView,
-    ReasoningEffort, TextGenerator,
 };
 pub use process_table::{
     ChildKind, EnvRead, HELPER_ARGS, MachineTotals, Markers, ProcessIdentity, ProcessInfo,

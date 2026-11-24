@@ -19,8 +19,7 @@ non-goals.
 
 Prerequisites: macOS on Apple Silicon with the Xcode Command Line Tools
 (`xcode-select --install`), or Linux with a C toolchain for the linker (`build-essential`
-on Debian and Ubuntu) and the OpenSSL headers (`pkg-config` and `libssl-dev`);
-[rustup](https://rustup.rs/), [mise](https://mise.jdx.dev/), and
+on Debian and Ubuntu); [rustup](https://rustup.rs/), [mise](https://mise.jdx.dev/), and
 [Just](https://just.systems/) (`brew install mise just` on a Mac). A Claude Code cloud
 session needs none of this by hand: its environment's setup script and the committed
 `SessionStart` hook provision the VM
@@ -41,10 +40,6 @@ runs (`RUSTUP_AUTO_INSTALL`, on by default:
 `just install` needs no `sudo` and opens no installer; a missing Command Line Tools
 install is reported with the command to run. `cargo run --locked -p loadtop -- tui` opens
 the full-screen view in the terminal you run it from; `q` quits.
-
-For apps that need a model, enable the optional `openrouter` Cargo feature. See
-[OpenRouter](docs/openrouter.md) for the key setup, `loadtop llm ask`, and reuse from a
-CLI or TUI action. The default build needs no API key.
 
 ## How it is built
 
@@ -83,7 +78,6 @@ just install-cli  # install the loadtop binary into ~/.cargo/bin (a human's step
 ## Documentation
 
 - [Getting Started](docs/getting-started.md)
-- [OpenRouter](docs/openrouter.md)
 - [AGENTS.md](AGENTS.md) — the architecture, the gates, and the skills an agent loads
 - [Contributing](CONTRIBUTING.md), [Security Policy](SECURITY.md),
   [Code of Conduct](CODE_OF_CONDUCT.md), [Changelog](CHANGELOG.md)
