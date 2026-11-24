@@ -11,6 +11,16 @@
 
 mod clock;
 mod counter_store;
+mod process_table;
+mod project_folders;
+mod session_records;
+mod signals;
+mod socket_table;
 
 pub use clock::{FixedClock, clock_contract};
 pub use counter_store::{FailingCounterStore, InMemoryCounterStore, counter_store_contract};
+pub use process_table::{FakeProcessTable, process_table_contract, process_with, sample_of};
+pub use project_folders::{FakeProjectFolders, project_folders_contract};
+pub use session_records::{FakeSessionRecords, session_records_contract};
+pub use signals::{FakeSignals, signals_contract};
+pub use socket_table::{FakeSocketTable, socket_table_contract};

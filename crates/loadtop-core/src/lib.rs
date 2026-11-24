@@ -10,10 +10,33 @@
 #![deny(clippy::wildcard_enum_match_arm)]
 
 pub mod counter;
+pub mod process_table;
+pub mod project_folders;
+pub mod sample;
+pub mod session_records;
+pub mod signals;
+pub mod socket_table;
 pub mod time;
+pub mod tuning;
 
 pub use counter::{
     Counter, CounterError, CounterScreen, CounterService, CounterView, ScreenAction, ScreenKey,
     StorageError, StorageErrorKind, StoredCounter, Tuning, TuningError, store::CounterStore,
 };
+pub use process_table::{
+    ChildKind, EnvRead, HELPER_ARGS, MachineTotals, Markers, ProcessIdentity, ProcessInfo,
+    ProcessSample, ProcessTable, ProcessTableError, RunState, Terminal, child_kind,
+    is_helper_invocation,
+};
+pub use project_folders::{
+    ProjectFolders, ProjectFoldersError, encode_project_path, is_inside_project,
+};
+pub use sample::Sample;
+pub use session_records::{SessionRecord, SessionRecords, SessionRecordsError, record_is_valid};
+pub use signals::{Signal, SignalError, SignalOutcome, Signals};
+pub use socket_table::{ListeningPort, SocketError, SocketTable};
 pub use time::{Clock, UnixMillis};
+pub use tuning::{
+    AppTuning, AppTuningError, FoldTuning, HeatTuning, OrderTuning, SamplingTuning, StopTuning,
+    TrendTuning,
+};
