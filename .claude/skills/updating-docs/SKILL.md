@@ -68,7 +68,6 @@ another's content: a copy is the half that goes stale.
 | `CONTRIBUTING.md` | Prerequisites, the workflow and its commands without Just, where a change goes, the pull request process, commit messages, the changelog policy |
 | `CHANGELOG.md` | The human-curated record of user-visible changes (Keep a Changelog) |
 | `docs/getting-started.md` | First setup, everyday commands, seeing the tool, TCC, removing the example code |
-| `docs/openrouter.md` | Enabling the optional model calls: the key, the model choices, reusing the adapter, its bounds |
 | a skill under `.claude/skills/` | The conventions of one kind of change, and how its subject is built and why, loaded on demand |
 | `///` on a `pub` item in core | That item's contract: why it exists and what it promises |
 

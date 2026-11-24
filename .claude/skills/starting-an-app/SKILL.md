@@ -134,11 +134,6 @@ the sample and the search that ends it. On top of it:
   and `tdd/SKILL.md` Steps 1-3;
 - replace the core module and its tests in the same pull request that removes them, so
   the core coverage floor still measures real code.
-- in loadtop, remove the optional model-call layer with it: the `openrouter` feature,
-  its adapter and `llm` subcommand, core's `generation` module, the `dotenvy` and `ureq`
-  entries, `docs/openrouter.md`, and every sentence that points at them (the `AGENTS.md`
-  Architecture bullet, `updating-docs`' docs table, README, CONTRIBUTING). loadtop calls
-  no model and needs no key (`AGENTS.md` › Product).
 
 Keep what is general: the `Clock` port and `SystemClock`, logging and its directories,
 the binary's `compose` and exit-code convention, the wording module's shape, and, for a
