@@ -21,10 +21,10 @@
 //! `--interval`, and the old `cargo run … tui`), each also caught when a rule spells it out
 //! anywhere (`Bash(cd x && cargo install …)`). A spelled-out screen command is `cargo run`
 //! with a later `tui` word, `cargo run` with `-p loadtop`, or `loadtop` as a command word
-//! (the first word of a command after `&&`, `||`, `;`, or `|` and any `NAME=value`
-//! assignments, read as the last part of its path); the last two are not reported when
-//! the command also carries `--once` or `--json`, which print one sample and never open
-//! the screen. The file is optional.
+//! (the first word of a command after `&&`, `||`, `;`, or `|`, any `NAME=value`
+//! assignments, and a `mise exec --`, read as the last part of its path); the last two are
+//! not reported when the command also carries `--once` or `--json` (a trailing `:*` or `*`
+//! aside), which print one sample and never open the screen. The file is optional.
 //!
 //! Errors: `ERR_CHECK_INPUT_UNREADABLE` (`.claude/settings.json` is not JSON),
 //! `ERR_CHECK_ALLOW_HUMAN_RECIPE` (an `allow` rule admits one of the recipes).
@@ -236,16 +236,28 @@ fn commands(rule: &str) -> Vec<Vec<&str>> {
 }
 
 /// Whether one command's words open the screen: `loadtop` (or a path ending in it) as the
-/// command word, or `cargo run` given `-p loadtop`, either without a one-sample flag.
+/// command word, or `cargo run` given `-p loadtop`, either without a one-sample flag. A
+/// trailing `:*` or `*` on a word is the rule's wildcard, not part of the word, and a
+/// leading `mise exec --` is seen through.
 fn opens_screen(words: &[&str]) -> bool {
+    let words: Vec<&str> = words
+        .iter()
+        .map(|word| word.trim_end_matches(":*").trim_end_matches('*'))
+        .collect();
     if words.iter().any(|word| ONE_SAMPLE.contains(word)) {
         return false;
     }
     let Some(first) = words.iter().position(|word| !is_assignment(word)) else {
         return false;
     };
-    let words = &words[first..];
-    if words[0].rsplit('/').next() == Some("loadtop") {
+    let mut words = &words[first..];
+    if words.starts_with(&["mise", "exec", "--"]) {
+        words = &words[3..];
+    }
+    let Some(command) = words.first() else {
+        return false;
+    };
+    if command.rsplit('/').next() == Some("loadtop") {
         return true;
     }
     words.starts_with(&["cargo", "run"])
@@ -554,6 +566,9 @@ mod tests {
             ("Bash(~/.cargo/bin/loadtop --interval 5)", SCREEN),
             ("Bash(HOME=/tmp/x target/debug/loadtop)", SCREEN),
             ("Bash(just build; target/release/loadtop)", SCREEN),
+            ("Bash(mise exec -- cargo run --locked -p loadtop)", SCREEN),
+            ("Bash(mise exec -- target/debug/loadtop)", SCREEN),
+            ("Bash(cd x && loadtop --interval*)", SCREEN),
         ] {
             assert_eq!(admitted_commands(rule), [command], "{rule}");
         }
@@ -574,6 +589,10 @@ mod tests {
             "Bash(ls crates/loadtop)",
             "Bash(loadtop-core)",
             "Bash(=x loadtop-y)",
+            "Bash(loadtop --once:*)",
+            "Bash(cargo run -p loadtop -- --json*)",
+            "Bash(mise exec -- loadtop --once)",
+            "Bash(mise exec --)",
             "Bash(cargo installer)",
             "Read(./cargo install)",
         ] {
