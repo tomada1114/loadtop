@@ -158,7 +158,7 @@ enum's derives, `ExitCode`, let chains, `Layout::areas`, `const` styles), are in
 
 - Log with the `tracing` macros and structured fields (`tracing::warn!(?action,
   %error, "…")`) rather than an ad-hoc `println!`, `eprintln!`, or `dbg!`: stdout is a
-  subcommand's data and, under `loadtop tui`, the screen itself, so a stray line breaks a
+  one sample's data and, under bare `loadtop`, the screen itself, so a stray line breaks a
   pipe or a frame, while the log file stays. The binary's own output to its user is
   the exception: its result is written with `writeln!` to a locked stdout so a closed
   pipe is an error rather than a panic, and its `error: …`/`warning: …` wording is

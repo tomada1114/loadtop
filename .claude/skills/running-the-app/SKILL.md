@@ -83,14 +83,15 @@ just logs            # the newest log file's last 50 lines, then exit
 
 Some changes are only visible in an interactive terminal: how the screen looks, a key
 that does nothing, a resize, the terminal left broken after an error or a crash. An
-agent never runs `loadtop tui`, not even to see it refuse: in an agent shell backed by a
-terminal it would take that terminal over and block. Its refusal without a terminal is
-already tested (`tui_without_a_terminal_fails_with_exit_code_1_and_touches_nothing` in
+agent never runs bare `loadtop` (nor `cargo run -p loadtop` without `--once` or `--json`),
+not even to see it refuse: in an agent shell backed by a terminal it would take that
+terminal over and block. Its refusal without a terminal is already tested
+(`bare_loadtop_without_a_terminal_refuses_and_touches_nothing` in
 `crates/loadtop/tests/cli.rs`). The agent asks the human, once, in one message, before
 iterating:
 
 - the exact commands: `cargo build --locked -p loadtop` first, then, against a scratch
-  `HOME` so the run touches none of their data, `HOME="$scratch" target/debug/loadtop tui`
+  `HOME` so the run touches none of their data, `HOME="$scratch" target/debug/loadtop`
   (not `HOME="$scratch" cargo run …`, which makes rustup fetch a toolchain into it);
 - the keys to press, in order, and what to look for after each, including leaving
   with `q` and checking that the shell prompt and the cursor came back;
@@ -125,7 +126,7 @@ command, not a paraphrase, and paste:
 - the command and its stdout, stderr, and exit code, for a subcommand's behavior;
 - a `just logs` excerpt, with the command that produced it, for behavior whose only
   observable is a log line;
-- what the human saw in `loadtop tui`, with a screenshot for anything a person looks at;
+- what the human saw in the screen bare `loadtop` opens, with a screenshot for anything a person looks at;
 - `just test-local` output, run by a human, for a change to an adapter with an
   `#[ignore = "local machine: …"]` test (`AGENTS.md` › "Review Checklist"). A cloud
   session never runs it: the Test Plan names it as needing a local run instead.

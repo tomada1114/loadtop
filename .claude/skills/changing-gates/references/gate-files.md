@@ -161,8 +161,9 @@ functions 90 over `xtask` and `xtask-guard`, then lines 90 and functions 100 ove
 for `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, the skills, and the committed
 `.claude/settings.json`, all of which `just check-harness` reads. In that
 settings file, `settings-allow-list` keeps the human recipes and the `cargo xtask` tasks
-that write to GitHub or rewrite the repository, `cargo install`, and `cargo run … tui`
-out of `allow`, and `settings-hooks` holds every hook command to scripts that exist, a
+that write to GitHub or rewrite the repository, `cargo install`, and every spelling that
+opens the screen (bare `loadtop`, `cargo run -p loadtop` without `--once`/`--json`) out of
+`allow`, and `settings-hooks` holds every hook command to scripts that exist, a
 `SessionStart` hook to `.claude/cloud/provision.sh`, and no `--no-verify`, `sudo`, or
 URL, with no `enabledPlugins` set.
 

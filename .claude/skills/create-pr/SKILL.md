@@ -94,8 +94,8 @@ Read `git diff main..HEAD` for these, each of which feeds a checklist item:
     output is pasted.
   - A change only a real terminal shows (the TUI's terminal loop, how a screen looks, a
     key, a resize, the terminal restored after an error) needs the human's run of
-    `loadtop tui` and what they saw; its checklist item stays unchecked until the Test
-    Plan says so. An agent never runs `loadtop tui`, since it takes over the terminal; the
+    bare `loadtop` and what they saw; its checklist item stays unchecked until the Test
+    Plan says so. An agent never runs bare `loadtop`, since it takes over the terminal; the
     commands and keys to hand the human are in `running-the-app`.
 - **A new dependency** (a crate, in any member) needs its reason in the body for the
   human's sign-off (`.claude/rules/project.md` › "Dependency Policy").

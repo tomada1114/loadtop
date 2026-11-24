@@ -133,7 +133,7 @@ The regression test comes first and reproduces the bug through the same interfac
 user or caller hit — usually the built binary in `cli.rs`, or the screen's `update` —
 so it fails for the reason the report describes, then passes with the fix. A bug that
 only a real terminal shows (the screen not restored after a crash, a resize drawing
-wrong) has no automated seam here; ask the human to reproduce it with `loadtop tui`
+wrong) has no automated seam here; ask the human to reproduce it with bare `loadtop`
 (`running-the-app`), then write the tests for each side the fix touches.
 
 ## Step 5: commit
@@ -149,5 +149,5 @@ A red test is never committed alone.
 - Testing an implementation detail (a private helper's call count) instead of the
   behavior and the contract.
 - Waiting on real time (`std::thread::sleep`) instead of an injected clock.
-- Running `loadtop tui` to see whether a change works, instead of a `TestBackend` test.
+- Running bare `loadtop` to see whether a change works, instead of a `TestBackend` test.
 - Skipping Step 2 because the failure "is obvious".

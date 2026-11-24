@@ -61,12 +61,12 @@ the full-screen view (`building-tuis`); a system API or TCC permission
 ## Choose the tool's shape
 
 Every app starts with both front ends over one core: subcommands
-(`loadtop counter show`) for a script, a scheduled job, or a quick look, and `loadtop tui`
-for a person who sits in front of the tool. Decide before the first feature which the
+(`loadtop counter show`) for a script, a scheduled job, or a quick look, and bare
+`loadtop`'s screen for a person who sits in front of the tool. Decide before the first feature which the
 app needs, and write it into the Product section's core interaction:
 
-- **Subcommands only**, for a tool that is scripted or scheduled: remove the `tui`
-  subcommand, `crates/loadtop/src/tui/`, and core's screen types (`CounterScreen`,
+- **Subcommands only**, for a tool that is scripted or scheduled: remove the screen
+  bare `loadtop` opens, `crates/loadtop/src/tui/`, and core's screen types (`CounterScreen`,
   `ScreenAction`, `ScreenKey`), drop `ratatui` from `crates/loadtop/Cargo.toml`, and,
   since no other member uses it, its entry in the root `Cargo.toml`'s
   `[workspace.dependencies]` (crossterm has no entry of its own: the binary reaches it
@@ -85,7 +85,7 @@ persistence decision too (below).
 **loadtop's shape:** a screen with flags and no subcommand. A bare `loadtop` opens the
 screen, and `--once` and `--json` print one sample for a script or a screen reader
 (`designing-clis` › "loadtop's command line"). The screen's state and keys stay in core
-as above, and the counter's subcommands and `tui` subcommand go with the sample.
+as above, and the counter's subcommands go with the sample.
 
 ## Decide where it keeps state
 

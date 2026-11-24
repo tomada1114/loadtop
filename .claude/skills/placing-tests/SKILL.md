@@ -35,7 +35,7 @@ fewest machines while still able to fail for the behavior:
 | The binary's wording for each error variant | `#[cfg(test)] mod tests` in `crates/loadtop/src/wording.rs`, one test per variant | `just test-core`, `just test-platform` | none |
 | How a terminal key event becomes core's key | `#[cfg(test)] mod tests` in `crates/loadtop/src/tui/mod.rs` | `just test-core`, `just test-platform` | none |
 | What a TUI state looks like on screen | `#[cfg(test)] mod tests` in `crates/loadtop/src/tui/view.rs`, drawn into ratatui's `TestBackend` | `just test-core`, `just test-platform` | none |
-| The real terminal loop (raw mode, the alternate screen, restoring it) | nowhere automated: a human runs `loadtop tui` (`building-tuis`) | a human | none |
+| The real terminal loop (raw mode, the alternate screen, restoring it) | nowhere automated: a human runs bare `loadtop` (`building-tuis`) | a human | none |
 | A repository task in `xtask/` | `#[cfg(test)] mod tests` in the task's file, with fakes for its child processes; a run of the built binary in `xtask/tests/` (`CARGO_BIN_EXE_xtask`, with a temporary directory as its root) | `just test-xtask` | `xtask` 85/90, and `xtask/guard/` 90/100 for the staged guard's rules |
 | A skill's bundled Python or shell script | the skill's own suite (`.claude/skills/<name>/scripts/tests/test_*.py`; `shellcheck` for `.sh`) | `just test-scripts` | none: no coverage is measured |
 

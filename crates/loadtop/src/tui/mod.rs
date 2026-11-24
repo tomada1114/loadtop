@@ -1,9 +1,9 @@
-//! `loadtop tui`: the terminal around the counter screen. Core decides what a key does
+//! Bare `loadtop`: the terminal around the counter screen. Core decides what a key does
 //! (`loadtop_core::CounterScreen`); this module only enters and leaves the terminal, reads
 //! its events, translates each into a `ScreenKey`, and draws (`view`).
 //!
 //! No test runs this loop: it needs a real terminal, which no check may take over. The
-//! human's check is running `loadtop tui` in one.
+//! human's check is running bare `loadtop` in one.
 
 mod view;
 

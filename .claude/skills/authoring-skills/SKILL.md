@@ -128,7 +128,7 @@ follows `AGENTS.md` › "Never taking over the machine": on its own an agent run
 only what shows no window, takes no focus, raises no prompt, and takes over no terminal,
 with the tests, `just test-platform`, and `just logs` as its evidence. A human's recipe
 (`just test-local`, `just logs-follow`, `just install-cli`) is marked as one wherever a
-skill names it. A skill never has an agent run `loadtop tui`, script another app, or
+skill names it. A skill never has an agent run bare `loadtop`, script another app, or
 start an installer or `sudo`; it hands the human the command instead.
 
 **For a reader new to Rust.** The human reviewing the pull requests a skill shapes may

@@ -126,7 +126,7 @@ local run."
 
 Avoid: "Run `just test-local` to check the Keychain adapter." An unattended agent
 following that raises a prompt on top of the owner's work and takes focus. Likewise
-"Run `loadtop tui` and check the screen": it takes over the terminal the agent runs in,
+"Run `loadtop` and check the screen": it takes over the terminal the agent runs in,
 and the human's beside it; the view's `TestBackend` tests are the agent's evidence, and
 a look at the real terminal is the human's to give.
 

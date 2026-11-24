@@ -15,7 +15,7 @@
 - [ ] New logic lives in `loadtop-core` and is covered by tests (happy and error path)
 - [ ] New public items have `///` comments saying why
 - [ ] Adapter change with an `#[ignore]`d test: `just test-local` was run and its output is in the Test Plan (CI cannot run it)
-- [ ] Change to the TUI's terminal loop: a human ran `loadtop tui` and the Test Plan says what they saw (no check runs it)
+- [ ] Change to the TUI's terminal loop: a human ran bare `loadtop` and the Test Plan says what they saw (no check runs it)
 - [ ] No new dependency, or its reason is stated here for sign-off
 - [ ] No gate weakened (a lint suppression, a lowered floor, a coverage exclusion, an `#[ignore]` on a failing test)
 - [ ] Documentation updated (if applicable)
