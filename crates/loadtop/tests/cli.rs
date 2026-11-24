@@ -309,6 +309,11 @@ fn an_unknown_subcommand_is_a_usage_error_with_exit_code_2() {
             "{args:?}: {}",
             stderr(&output)
         );
+        assert_eq!(
+            std::fs::read_dir(home.path()).unwrap().count(),
+            0,
+            "{args:?} wrote under HOME"
+        );
     }
 }
 

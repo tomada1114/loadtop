@@ -10,4 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - The optional `openrouter` Cargo feature and its `loadtop llm ask` subcommand: loadtop
-  calls no model and needs no API key.
+  calls no model and needs no API key. Breaking for a build made with
+  `--features openrouter`, which no longer builds; the default build never had the
+  subcommand.
