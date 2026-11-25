@@ -58,8 +58,9 @@ pub struct SessionFacts {
     /// Its status (`busy`, `idle`) as the record spells it, from a valid record only.
     pub status: Option<String>,
     /// Every session ID it has had: the valid record's, and every
-    /// `CLAUDE_CODE_SESSION_ID` among its descendants, nested sessions' included. The ID
-    /// changes on `/clear`, so a session is a root process with a set of IDs.
+    /// `CLAUDE_CODE_SESSION_ID` among its descendants in the tree shown, nested
+    /// sessions' and detached subtrees' included. The ID changes on `/clear`, so a
+    /// session is a root process with a set of IDs.
     pub session_ids: BTreeSet<String>,
 }
 
@@ -219,7 +220,7 @@ pub fn classify(
     sort: SortKey,
 ) -> Classification {
     let index = Index::new(&sample.processes.processes);
-    let sessions = Sessions::find(&index, &sample.records);
+    let mut sessions = Sessions::find(&index, &sample.records);
     let guarded = loadtop_chain(&index, own);
 
     let live_cwds: Vec<PathBuf> = sessions
@@ -228,20 +229,44 @@ pub fn classify(
         .filter_map(|info| info.project.clone())
         .collect();
 
+    let mut pending: Vec<(usize, Vec<usize>)> = index
+        .tops
+        .iter()
+        .map(|&top| (top, index.preorder(top)))
+        .filter(|(_, members)| {
+            !members
+                .iter()
+                .any(|&member| sessions.info.contains_key(&member))
+        })
+        .collect();
+    // An attached subtree can carry an ID its session had before `/clear`, which may
+    // name another orphan's owner: attach until a pass attaches nothing. Each pass
+    // removes at least one top or ends the loop.
     let mut detached: HashMap<usize, Vec<usize>> = HashMap::new();
+    loop {
+        let mut attached_any = false;
+        let mut unattached = Vec::new();
+        for (top, members) in pending {
+            match sessions.owner_by_markers(&index, &members) {
+                Some(owner) => {
+                    sessions.learn_ids(&index, owner, &members);
+                    detached.entry(owner).or_default().push(top);
+                    attached_any = true;
+                }
+                None => unattached.push((top, members)),
+            }
+        }
+        pending = unattached;
+        if !attached_any {
+            break;
+        }
+    }
+    for children in detached.values_mut() {
+        children.sort_unstable();
+    }
+
     let mut leftovers: Vec<(usize, GroupKind, Option<PathBuf>)> = Vec::new();
-    for &top in &index.tops {
-        let members = index.preorder(top);
-        if members
-            .iter()
-            .any(|&member| sessions.info.contains_key(&member))
-        {
-            continue;
-        }
-        if let Some(owner) = sessions.owner_by_markers(&index, &members) {
-            detached.entry(owner).or_default().push(top);
-            continue;
-        }
+    for (top, members) in pending {
         if index.process(top).ppid != Some(ORPHAN_PPID) {
             continue;
         }
@@ -407,7 +432,9 @@ impl Sessions {
         let mut top_level = Vec::new();
         let mut info = HashMap::new();
         for at in (0..index.processes.len()).filter(|&at| is_session[at]) {
-            // A walk that comes back to `at` is a cycle, so `at` has a session ancestor.
+            // A walk that comes back to `at` means `at` sits in a ppid cycle, which no
+            // real table holds: with no session ancestor it is dropped, with whatever
+            // would attach to it, rather than listed as a top-level session.
             let cyclic = index
                 .ancestors(at)
                 .last()
@@ -475,7 +502,7 @@ impl Sessions {
     }
 
     /// The live session the first marked member (pre-order) names, by its session ID
-    /// or by `CLAUDE_PID`.
+    /// or by `CLAUDE_PID` (only a session started no later than the member).
     fn owner_by_markers(&self, index: &Index<'_>, members: &[usize]) -> Option<usize> {
         members.iter().find_map(|&member| {
             let markers = readable(&index.process(member).env)?;
@@ -487,9 +514,40 @@ impl Sessions {
                 .claude_pid
                 .as_deref()
                 .and_then(|pid| pid.parse::<u32>().ok())
-                .and_then(|pid| self.session_at_pid.get(&pid));
+                .and_then(|pid| self.session_at_pid.get(&pid))
+                // A process cannot predate the session that started it: a later
+                // session at that PID is a reused PID, not the owner.
+                .filter(|&&owner| {
+                    index.process(owner).identity.start_time
+                        <= index.process(member).identity.start_time
+                });
             owner_named.or(owner_launched).copied()
         })
+    }
+
+    /// Adds the session IDs a subtree attached to `owner` carries: to `owner`'s own
+    /// set, so a later orphan carrying one hangs under it, and to the public set of
+    /// `owner` and every session above it, whose descendant the subtree now is.
+    fn learn_ids(&mut self, index: &Index<'_>, owner: usize, members: &[usize]) {
+        let ids: Vec<&str> = members
+            .iter()
+            .filter_map(|&member| session_id(&index.process(member).env))
+            .collect();
+        let holders: Vec<usize> = std::iter::once(owner)
+            .chain(index.ancestors(owner))
+            .filter(|at| self.info.contains_key(at))
+            .collect();
+        for id in ids {
+            self.owner_of_id.entry(id.to_owned()).or_insert(owner);
+            if let Some(info) = self.info.get_mut(&owner) {
+                info.own_ids.insert(id.to_owned());
+            }
+            for holder in &holders {
+                if let Some(info) = self.info.get_mut(holder) {
+                    info.facts.session_ids.insert(id.to_owned());
+                }
+            }
+        }
     }
 }
 

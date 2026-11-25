@@ -627,6 +627,58 @@ mod classify {
         );
     }
 
+    #[test]
+    fn claude_pid_naming_a_reused_pid_still_confirms_a_leftover() {
+        let reused = ProcessInfo {
+            identity: ProcessIdentity {
+                pid: 91190,
+                start_time: START + 3_600,
+            },
+            ..claude(91190, 600, &[])
+        };
+        let zsh = unreadable(proc(52143, 1, 0.0));
+        let node = marked(
+            proc(52150, 52143, 7.0),
+            Markers {
+                claude_pid: Some("91190".to_owned()),
+                ..tool_marker(DEAD_ID)
+            },
+        );
+        let classification = run(&sample(vec![reused, zsh, node]));
+        let group = classification
+            .groups
+            .iter()
+            .find(|group| group.root.process.identity.pid == 52143)
+            .unwrap_or_else(|| panic!("the orphan is listed: {classification:#?}"));
+        assert_eq!(leftover(group), (LeftoverTier::Confirmed, Some(DEAD_ID)));
+    }
+
+    #[test]
+    fn an_id_learned_from_a_detached_subtree_attaches_another_orphan() {
+        let root = claude(91190, 600, &[]);
+        let first = unreadable(proc(52143, 1, 0.0));
+        let first_node = marked(
+            proc(52150, 52143, 1.0),
+            Markers {
+                claude_pid: Some("91190".to_owned()),
+                ..tool_marker("old-id")
+            },
+        );
+        let second = marked(proc(52100, 1, 2.0), tool_marker("old-id"));
+        let sample = with_records(
+            sample(vec![root, first, first_node, second]),
+            vec![record(91190, "cli", "new-id", "/Users/ann/code/acme-web")],
+        );
+        let classification = run(&sample);
+        let group = only_group(&classification);
+        assert_eq!(pids(&group.root.children), vec![52100, 52143]);
+        assert!(group.root.children.iter().all(|child| child.detached));
+        assert_eq!(
+            session(group).session_ids,
+            BTreeSet::from(["new-id".to_owned(), "old-id".to_owned()])
+        );
+    }
+
     // REQ-010
 
     #[test]
