@@ -7,7 +7,7 @@ mod support;
 use std::net::TcpListener;
 use std::path::Path;
 
-use loadtop_core::{ListeningPort, SessionRecord, SocketTable};
+use loadtop_core::{ListeningPort, SessionRecord};
 use loadtop_platform::{
     JsonFileCounterStore, LSOF_PATH, LsofSocketTable, ProjectFoldersDir, SessionRecordsDir,
     SysinfoProcessTable, SysinfoSignals, SystemClock,
@@ -80,6 +80,8 @@ fn lsof_socket_table_meets_the_socket_table_contract() {
 #[cfg(target_os = "macos")]
 #[test]
 fn on_macos_the_real_lsof_lists_a_held_listener() {
+    use loadtop_core::SocketTable;
+
     let uid = SysinfoProcessTable::new().unwrap().user_id();
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let held = ListeningPort {
