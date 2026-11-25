@@ -11,6 +11,7 @@
 
 pub mod classify;
 pub mod counter;
+pub mod list;
 pub mod process_table;
 pub mod project_folders;
 pub mod report;
@@ -29,6 +30,7 @@ pub use counter::{
     Counter, CounterError, CounterScreen, CounterService, CounterView, ScreenAction, ScreenKey,
     StorageError, StorageErrorKind, StoredCounter, Tuning, TuningError, store::CounterStore,
 };
+pub use list::{FoldState, Folds, History, Reading, Row, RowId, order_by_window, rows};
 pub use process_table::{
     ChildKind, EnvRead, HELPER_ARGS, MachineTotals, Markers, ProcessIdentity, ProcessInfo,
     ProcessSample, ProcessTable, ProcessTableError, RunState, Terminal, child_kind,
