@@ -58,8 +58,8 @@ pub struct SessionFacts {
     /// Its status (`busy`, `idle`) as the record spells it, from a valid record only.
     pub status: Option<String>,
     /// Every session ID it has had: the valid record's, and every
-    /// `CLAUDE_CODE_SESSION_ID` among the descendants it is the nearest session of. The
-    /// ID changes on `/clear`, so a session is a root process with a set of IDs.
+    /// `CLAUDE_CODE_SESSION_ID` among its descendants, nested sessions' included. The ID
+    /// changes on `/clear`, so a session is a root process with a set of IDs.
     pub session_ids: BTreeSet<String>,
 }
 
@@ -386,6 +386,9 @@ impl<'a> Index<'a> {
 struct SessionInfo {
     facts: SessionFacts,
     project: Option<PathBuf>,
+    /// The record's ID and those of the descendants this is the nearest session of: a
+    /// re-parented process carrying one hangs under this session, not an outer one.
+    own_ids: BTreeSet<String>,
 }
 
 /// Every live session in the sample, by index, and which are top-level.
@@ -417,17 +420,20 @@ impl Sessions {
                 .iter()
                 .find(|record| record_is_valid(record, process));
             let descendants = &index.preorder(at)[1..];
-            let mut session_ids: BTreeSet<String> = record
+            let mut own_ids: BTreeSet<String> = record
                 .and_then(|record| record.session_id.clone())
                 .into_iter()
                 .collect();
-            session_ids.extend(
-                descendants
-                    .iter()
-                    .filter(|&&below| nearest_session(below) == Some(at))
-                    .filter_map(|&below| session_id(&index.process(below).env))
-                    .map(str::to_owned),
-            );
+            let mut session_ids = own_ids.clone();
+            for &below in descendants {
+                let Some(id) = session_id(&index.process(below).env) else {
+                    continue;
+                };
+                if nearest_session(below) == Some(at) {
+                    own_ids.insert(id.to_owned());
+                }
+                session_ids.insert(id.to_owned());
+            }
             let project = record
                 .and_then(|record| record.cwd.clone())
                 .or_else(|| process.cwd.clone())
@@ -441,7 +447,14 @@ impl Sessions {
                 status: record.and_then(|record| record.status.clone()),
                 session_ids,
             };
-            info.insert(at, SessionInfo { facts, project });
+            info.insert(
+                at,
+                SessionInfo {
+                    facts,
+                    project,
+                    own_ids,
+                },
+            );
         }
         let mut owner_of_id = HashMap::new();
         let mut session_at_pid = HashMap::new();
@@ -449,7 +462,7 @@ impl Sessions {
         ordered.sort_unstable();
         for &at in ordered {
             session_at_pid.insert(index.process(at).identity.pid, at);
-            for id in &info[&at].facts.session_ids {
+            for id in &info[&at].own_ids {
                 owner_of_id.entry(id.clone()).or_insert(at);
             }
         }

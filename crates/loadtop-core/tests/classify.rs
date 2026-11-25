@@ -388,7 +388,8 @@ mod classify {
         assert_eq!(nested.guard, Some(GuardReason::NestedSession));
         assert_eq!(
             session(group).session_ids,
-            BTreeSet::from([LIVE_ID.to_owned()])
+            BTreeSet::from([LIVE_ID.to_owned(), DEAD_ID.to_owned()]),
+            "the parent's set holds every descendant's ID, the nested session's included"
         );
         assert!(
             classification
