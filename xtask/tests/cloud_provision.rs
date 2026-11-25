@@ -162,7 +162,7 @@ const PATH_LINE: &str = r#"export PATH="$HOME/.local/share/mise/shims:$HOME/.car
 
 /// Named after the file, so `cargo nextest run -p xtask cloud_provision` selects them.
 mod cloud_provision {
-    use super::{PATH_LINE, Repo, cloud_dir, must};
+    use super::{PATH_LINE, Repo, must};
 
     #[test]
     fn session_mode_does_nothing_outside_a_cloud_session() {
@@ -214,6 +214,7 @@ mod cloud_provision {
     #[test]
     fn a_failing_step_still_exits_zero() {
         let repo = Repo::new();
+        repo.write(".claude/cloud/apt-packages.txt", "# packages\njq\n");
         let run = repo.run_cloud_session("mise rustup cargo lefthook apt-get");
         assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
         assert!(
@@ -228,8 +229,35 @@ mod cloud_provision {
     }
 
     #[test]
+    fn a_failing_apt_install_alone_warns_and_writes_no_stamp() {
+        let repo = Repo::new();
+        repo.write(".claude/cloud/apt-packages.txt", "# packages\njq\n");
+        let run = repo.run_cloud_session("apt-get");
+        assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
+        assert!(
+            run.stderr.contains("apt-get could not install"),
+            "stderr: {}",
+            run.stderr
+        );
+        assert!(
+            !repo.root().join("target/.cloud-provision.sha256").exists(),
+            "a failed apt install must not write the stamp"
+        );
+    }
+
+    #[test]
+    fn a_package_list_of_comments_only_skips_apt() {
+        let repo = Repo::new();
+        let run = repo.run("setup", &[], "");
+        assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
+        assert!(!run.called("apt-get"), "calls: {:?}", run.calls);
+    }
+
+    #[test]
     fn setup_mode_does_not_require_claude_code_remote() {
         let repo = Repo::new();
+        // The real list may be empty; one package makes the apt step observable.
+        repo.write(".claude/cloud/apt-packages.txt", "# packages\njq\n");
         let run = repo.run("setup", &[], "");
         assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
         for expected in [
@@ -240,25 +268,6 @@ mod cloud_provision {
             "lefthook install",
         ] {
             assert!(run.called(expected), "no `{expected}` in {:?}", run.calls);
-        }
-    }
-
-    #[test]
-    fn apt_packages_cover_the_openssl_headers() {
-        let text = must(
-            std::fs::read_to_string(cloud_dir().join("apt-packages.txt")),
-            "read apt-packages.txt",
-        );
-        let packages: Vec<&str> = text
-            .lines()
-            .map(str::trim)
-            .filter(|line| !line.is_empty() && !line.starts_with('#'))
-            .collect();
-        for expected in ["pkg-config", "libssl-dev"] {
-            assert!(
-                packages.contains(&expected),
-                "{expected} missing from {packages:?}"
-            );
         }
     }
 
