@@ -82,11 +82,12 @@ a user can now type something new.
 - **stderr** carries `error: <wording>` for a failed action, `warning: <wording>` for a
   degraded run, and, in a debug build only, a copy of each log line (`compose(true)`).
   A test reads the diagnostic as the last stderr line for that reason.
-- Write stdout with `writeln!(io::stdout().lock(), …)` and handle the `Err`. `println!`
-  panics when stdout is closed (`loadtop counter show | true` once `true` has exited), and
-  under the release profile's `panic = "abort"` the process then prints only the panic
-  message and aborts: no `error: …` line and no exit 1 for a script to read. The sample
-  maps the failure to `wording::STDOUT_UNAVAILABLE` and exit 1.
+- Write stdout through `io::stdout().lock()` and handle the `Err` of the write and the
+  flush. `println!` panics when stdout is closed (`loadtop --once | true` once `true`
+  has exited), and under the release profile's `panic = "abort"` the process then
+  prints only the panic message and aborts: no `error: …` line and no exit 1 for a
+  script to read. `--once` and `--json` map the failure to `wording::STDOUT_UNAVAILABLE`
+  and exit 1 (`a_closed_stdout_pipe_is_a_runtime_error_not_a_panic` in `cli.rs`).
 - No color and no terminal control in a subcommand's output: the workspace builds clap
   without its `color` feature (`Cargo.toml`'s `[workspace.dependencies]`), and logs are
   written with `with_ansi(false)`. Output that may land in a file or a pipe stays plain.
@@ -180,5 +181,5 @@ reach, a usage error, and that a failure prints no data. `just test-core` and
 calling `Cli::command().debug_assert()` (`clap::CommandFactory`), which panics on a
 contradictory argument definition
 (<https://docs.rs/clap/latest/clap/struct.Command.html#method.debug_assert>, clap 4.6.7,
-checked 2026-10-01); the sample has none yet. **REQUIRED:** `writing-tests` for the
+checked 2026-10-01); `the_command_line_declaration_is_consistent` in `main.rs` is that test. **REQUIRED:** `writing-tests` for the
 assertions.

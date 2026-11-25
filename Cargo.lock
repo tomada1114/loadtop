@@ -440,6 +440,7 @@ dependencies = [
  "loadtop-platform",
  "loadtop-test-support",
  "ratatui",
+ "serde_json",
  "tempfile",
  "tracing",
 ]

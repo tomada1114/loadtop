@@ -12,7 +12,7 @@ One command, no subcommand. The person's path is the screen; a script's is one s
 | Invocation | Does | Exit |
 |---|---|---|
 | `loadtop` | opens the full-screen view (`building-tuis`); refuses with `error: …` when stdin or stdout is not a terminal | 0 on quit; 1 when refused or the process table cannot be read |
-| `loadtop --once` | prints one sample as indented plain text (ux-flows T1) and exits | 0, also when nothing is found; 1 when the process table cannot be read |
+| `loadtop --once` | prints one sample as indented plain text (ux-flows T1) and exits | 0, also when nothing is found; 1 when the process table cannot be read, `HOME` is unset or empty, or stdout cannot be written |
 | `loadtop --json` | prints the same sample as one JSON document (below); implies `--once` | as `--once` |
 | `--interval <seconds>` | the screen's refresh interval, an integer from 1 to 10, default 2 | 2 when out of range (clap's `value_parser` range) or given with `--once`/`--json` |
 
@@ -32,6 +32,28 @@ One command, no subcommand. The person's path is the screen; a script's is one s
   `conflicts_with`): one sample has no refresh interval, and silently ignoring a flag
   hides a script's mistake.
 
+## The `--once` text
+
+ux-flows T1, laid out by `crates/loadtop/src/once.rs` and pinned by its unit tests:
+
+- **The header** is `CPU Claude <cores> cores · all <cores> of <cpus>   MEM Claude <mem> ·
+  used <used>/<total>`; cores have one decimal (`0` when zero), and `used/total` writes a
+  shared unit once (`14.2/16G`), as the ux-flows examples do.
+- **A group line** is the kind word and a space (`desktop  `, `leftover `, `leftover? `),
+  then `project · name · status` for a session, `project · closed session <first 8 of
+  the ID>` for a confirmed leftover, or `project` for a probable one, missing parts
+  dropped; the project is home-relative. Its CPU% field sits at columns 44–49, as on
+  process lines, pushed right to keep two spaces after a long label.
+- **A process line** is `  <pid:>5>  <command:29><kind:4>  <cpu%:>6>  <mem:>4>`, then
+  the ports and `paused` when present, two spaces apart, with trailing spaces trimmed.
+  The command is two spaces per level, the name, and the arguments, cut at 27
+  characters to 26 and `…`. A session's root is its group line, so its children start
+  at level 0; a leftover's top is a process line at level 0.
+- **Units.** CPU% has one decimal and `%`; memory is whole MiB below 1 GiB (`612M`),
+  else GiB with one decimal and `.0` dropped (`1.6G`, `16G`), `0` when zero; anything
+  unknown is `-`. Ports are `:5173` style, `-` when the sockets could not be read.
+- **Nothing found** prints the header, then `No Claude Code session is running.`
+
 ## The `--json` document
 
 - **Keys are snake_case** (`schema_version`, `cpu_percent`, `rss_bytes`): the output type
@@ -39,7 +61,13 @@ One command, no subcommand. The person's path is the screen; a script's is one s
   camelCase default `designing-core-logic` gives a view. snake_case is what the
   requirements spell and what a `jq` filter reads without quoting, and the tools a
   loadtop user pipes beside it (`cargo metadata`, `ps`-style JSON) use it.
-- **The shape, as a literal.** `cli.rs` pins this document's shape (values invented):
+- **One compact document on one line.** `--json` writes the document without
+  whitespace between tokens, then one `\n`, so a script reads it as one line and the
+  first bytes are always `{"schema_version":1,`. Keys appear in the order of the literal
+  below.
+- **The shape, as a literal.** `crates/loadtop-core/tests/serialization.rs` pins this
+  document's shape against core's `JsonReport`, and `cli.rs` pins the built binary's
+  top-level keys (values invented):
 
   ```json
   {
@@ -66,10 +94,15 @@ One command, no subcommand. The person's path is the screen; a script's is one s
   }
   ```
 
-  A process's `kind` is `"tool"`, `"mcp"`, or `null` when its env is unreadable;
-  `state` is `"running"` or `"stopped"`; `cpu_percent` is `null` when it cannot be
-  computed; `project`, `name`, `status`, and `closed_session_id` are `null` when
-  unknown; `tier` is `"confirmed"` or `"probable"`. A nested session is a process in its
+  A process's `kind` is `"tool"`, `"mcp"`, or `null` when its env is unreadable or
+  carries no marker; `command` is the argument vector joined by spaces, `null` when it
+  is unreadable; `ports` is the listening ports ascending, `[]` when the read found no
+  listener, and `null` when the sockets could not be read (an empty array would claim
+  there is none); `state` is `"running"` or `"stopped"`; `cpu_percent` is `null` when it
+  cannot be computed; `project` is home-relative (`~/…`), and it, `name`, `status`, and
+  `closed_session_id` are `null` when unknown; a session's `kind` is `"terminal"`,
+  `"desktop"`, or `"headless"`; `tier` is `"confirmed"` or `"probable"`. Sessions and
+  leftovers each keep the heaviest-first order by CPU. A nested session is a process in its
   parent's `children` whose `session` holds `kind`, `name`, `status`, and
   `session_ids`; a session whose parent session ended is a top-level entry.
   `start_time` is Unix seconds. Unreadable is `null`, never `"-"` or `0`.
