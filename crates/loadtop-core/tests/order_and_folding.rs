@@ -636,6 +636,80 @@ mod order_and_folding {
     }
 
     #[test]
+    fn a_leftover_with_four_children_under_its_top_does_not_fold() {
+        let leftover = sample(vec![
+            leftover_top(52143, 0.0),
+            proc(52151, 52143, 4.0),
+            proc(52152, 52143, 3.0),
+            proc(52153, 52143, 2.0),
+            proc(52154, 52143, 1.0),
+        ]);
+        let order = ordered(&[leftover], SortKey::Cpu);
+        assert_eq!(
+            rows_of(&order, &Folds::default()),
+            vec![
+                Seen::Group(52143, FoldState::Folded),
+                Seen::Process(52143, vec![true]),
+                Seen::Process(52151, vec![true, false]),
+                Seen::Process(52152, vec![true, false]),
+                Seen::Process(52153, vec![true, false]),
+                Seen::Process(52154, vec![true, true]),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_paused_process_with_a_running_child_lifts_only_itself() {
+        let paused_parent = sample(vec![
+            claude(91190),
+            proc(91201, 91190, 4.0),
+            proc(91202, 91190, 3.0),
+            proc(91203, 91190, 2.0),
+            stopped(with_rss(proc(91204, 91190, 0.0), MIB)),
+            with_rss(proc(91214, 91204, 1.0), 2 * MIB),
+        ]);
+        let order = ordered(&[paused_parent], SortKey::Cpu);
+        assert_eq!(
+            rows_of(&order, &Folds::default()),
+            vec![
+                Seen::Group(91190, FoldState::Folded),
+                Seen::Process(91201, vec![false]),
+                Seen::Process(91202, vec![false]),
+                Seen::Process(91203, vec![false]),
+                Seen::More(1, Some(1.0), 2 * MIB),
+                Seen::Lifted(91204),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_fold_row_of_unknown_cpu_has_no_cpu_total() {
+        let unknown = |pid| ProcessInfo {
+            cpu_percent: None,
+            ..with_rss(proc(pid, 91190, 0.0), MIB)
+        };
+        let first_refresh = sample(vec![
+            claude(91190),
+            unknown(91201),
+            unknown(91202),
+            unknown(91203),
+            unknown(91204),
+        ]);
+        let order = ordered(&[first_refresh], SortKey::Cpu);
+        let all = rows_of(&order, &Folds::default());
+        assert_eq!(all.last(), Some(&Seen::More(1, None, MIB)));
+    }
+
+    #[test]
+    fn a_process_listed_twice_in_one_sample_is_read_once() {
+        let history = history().apply(&sample(vec![
+            proc(91204, 500, 10.0),
+            proc(91204, 500, 99.0),
+        ]));
+        assert_eq!(cpu_readings(&history, 91204), vec![Some(10.0)]);
+    }
+
+    #[test]
     fn a_leftover_group_shows_its_top_process_as_its_one_subtree() {
         let leftover = sample(vec![leftover_top(52143, 0.0), proc(52150, 52143, 96.3)]);
         let order = ordered(&[leftover], SortKey::Cpu);
