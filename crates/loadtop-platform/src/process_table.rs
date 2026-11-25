@@ -110,8 +110,8 @@ impl ProcessTable for SysinfoProcessTable {
         if system.process(self.own_pid).is_none() {
             return Err(ProcessTableError::Unreadable);
         }
-        // Right after the full refresh: on macOS every refresh, even of a few PIDs,
-        // restarts the interval CPU% is measured over.
+        // Right after the full refresh: on macOS any refresh, even of a few PIDs, made
+        // 200 ms or more after the last restarts the interval CPU% is measured over.
         let fresh_cwd: Vec<Pid> = system
             .processes()
             .values()

@@ -58,9 +58,11 @@ crosses a port.
   `UpdateKind::OnlyIfNotSet`: a process's environment does not change after `exec`, so
   re-reading it every 2 s for 780 processes is wasted work. cwd can change, and matters
   only for leftover judgement, so it is re-read only for processes whose ppid is 1 and
-  for session roots, in a second refresh right after the full one: on macOS every
-  refresh, even of a few PIDs, restarts the interval the next CPU% is measured over, so
-  `cwd` for one process (the detail overlay) uses a throwaway `System` of its own.
+  for session roots, in a second refresh right after the full one: on macOS any refresh,
+  even of a few PIDs, restarts the interval the next CPU% is measured over once 200 ms
+  have passed since the last restart (`get_time_interval`, 0.40.4 source, read
+  2026-11-24), so the second refresh must come within that window, and `cwd` for one
+  process (the detail overlay) uses a throwaway `System` of its own.
   Measured with that split on 0.40.4: about 20 ms of CPU and 9–10 MB RSS per full scan
   (observed with a prototype, 2026-11-20).
 - **Only the marker variables leave the adapter.** It keeps `CLAUDECODE`,
