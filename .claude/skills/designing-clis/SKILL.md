@@ -62,10 +62,11 @@ subcommands as its examples.
   in the wrong crate; move it into core, where the coverage floor sees it. In the
   sample, `counter(action)` maps each `CounterAction` to one `CounterService` call.
 - One composition root. The real adapters are built in one function and nowhere else,
-  so every subcommand and the TUI run against the same wiring. In the sample,
-  `compose(echo_logs)` finds `HOME`, starts logging (best effort: a warning, then the
-  action still runs), and returns the `CounterService` over `JsonFileCounterStore` and
-  `SystemClock`.
+  so every invocation and the TUI run against the same wiring. In `main.rs`,
+  `start(echo_logs)` finds `HOME` and starts logging (best effort: a warning, then the
+  action still runs); `first_sample` builds the read adapters and takes the first
+  sample for `--once` and `--json`, and the screen builds the `CounterService` over
+  `JsonFileCounterStore` and `SystemClock`.
 - Rendering a view is one small function per view, so every subcommand that prints it
   prints the same line (`render(&CounterView)` in the sample).
 
@@ -80,7 +81,7 @@ a user can now type something new.
 - **stdout** carries only the result, one value per line, nothing decorative, so
   `loadtop counter show | …` works and a script never parses around a banner.
 - **stderr** carries `error: <wording>` for a failed action, `warning: <wording>` for a
-  degraded run, and, in a debug build only, a copy of each log line (`compose(true)`).
+  degraded run, and, in a debug build only, a copy of each log line (`start(true)`).
   A test reads the diagnostic as the last stderr line for that reason.
 - Write stdout through `io::stdout().lock()` and handle the `Err` of the write and the
   flush. `println!` panics when stdout is closed (`loadtop --once | true` once `true`
@@ -105,7 +106,7 @@ a user can now type something new.
 - `main` returns `ExitCode`; nothing calls `std::process::exit`, which ends the process
   without running destructors (<https://doc.rust-lang.org/std/process/fn.exit.html>), so
   a lock file or a buffered log line could be left behind.
-- A usage error touches nothing: parsing happens before `compose`, and
+- A usage error touches nothing: parsing happens before `start`, and
   `a_usage_error_touches_nothing` in `cli.rs` asserts the temporary `HOME` stays empty.
 - A distinct code per error kind is a change to the contract, not a refactor: say so in
   `CHANGELOG.md` and in this skill's exit-code table, and test each code.

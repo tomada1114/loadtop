@@ -136,7 +136,7 @@ the sample and the search that ends it. On top of it:
   the core coverage floor still measures real code.
 
 Keep what is general: the `Clock` port and `SystemClock`, logging and its directories,
-the binary's `compose` and exit-code convention, the wording module's shape, and, for a
+the binary's `start` and exit-code convention, the wording module's shape, and, for a
 tool with a screen, the TUI's enter, leave, and panic-hook code.
 
 ## Install it
