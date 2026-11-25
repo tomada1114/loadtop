@@ -9,6 +9,7 @@
 // error at every place that must decide what it means (the `writing-rust` skill).
 #![deny(clippy::wildcard_enum_match_arm)]
 
+pub mod classify;
 pub mod counter;
 pub mod process_table;
 pub mod project_folders;
@@ -19,6 +20,10 @@ pub mod socket_table;
 pub mod time;
 pub mod tuning;
 
+pub use classify::{
+    Classification, Group, GroupKind, GuardReason, LeftoverTier, Node, PortsView, SessionFacts,
+    SessionKind, SortKey, Totals, classify, home_relative,
+};
 pub use counter::{
     Counter, CounterError, CounterScreen, CounterService, CounterView, ScreenAction, ScreenKey,
     StorageError, StorageErrorKind, StoredCounter, Tuning, TuningError, store::CounterStore,
