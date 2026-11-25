@@ -110,22 +110,6 @@ impl ProcessTable for SysinfoProcessTable {
         if system.process(self.own_pid).is_none() {
             return Err(ProcessTableError::Unreadable);
         }
-        // Right after the full refresh: on macOS any refresh, even of a few PIDs, made
-        // 200 ms or more after the last restarts the interval CPU% is measured over.
-        let fresh_cwd: Vec<Pid> = system
-            .processes()
-            .values()
-            .filter(|process| needs_fresh_cwd(process))
-            .map(Process::pid)
-            .collect();
-        system.refresh_processes_specifics(
-            ProcessesToUpdate::Some(&fresh_cwd),
-            true,
-            ProcessRefreshKind::nothing()
-                .without_tasks()
-                .with_cwd(UpdateKind::Always),
-        );
-
         let same_user: Vec<&Process> = system
             .processes()
             .values()
@@ -133,13 +117,27 @@ impl ProcessTable for SysinfoProcessTable {
             .collect();
         // On macOS sysinfo 0.40 keeps the run state a process had when its `System`
         // first saw it, so a long-lived one never sees a STOP or a CONT. A throwaway
-        // `System` reads each state as it is now.
+        // `System` reads each state as it is now, and the cwd of the processes whose
+        // cwd must be current: any further refresh of the sampler's `System` could
+        // restart the interval its next CPU% is measured over.
         let mut now = System::new().map_err(|_| ProcessTableError::Unreadable)?;
         let pids: Vec<Pid> = same_user.iter().map(|process| process.pid()).collect();
         now.refresh_processes_specifics(
             ProcessesToUpdate::Some(&pids),
             true,
             ProcessRefreshKind::nothing().without_tasks(),
+        );
+        let fresh_cwd: Vec<Pid> = same_user
+            .iter()
+            .filter(|process| needs_fresh_cwd(process))
+            .map(|process| process.pid())
+            .collect();
+        now.refresh_processes_specifics(
+            ProcessesToUpdate::Some(&fresh_cwd),
+            true,
+            ProcessRefreshKind::nothing()
+                .without_tasks()
+                .with_cwd(UpdateKind::Always),
         );
         let processes: Vec<ProcessInfo> = same_user
             .into_iter()
@@ -153,7 +151,12 @@ impl ProcessTable for SysinfoProcessTable {
                     ProcessStatus::Stop => RunState::Stopped,
                     _ => RunState::Running,
                 };
-                Some(process_info(process, state, previous))
+                let cwd = if needs_fresh_cwd(process) {
+                    current.cwd()
+                } else {
+                    process.cwd()
+                };
+                Some(process_info(process, state, cwd, previous))
             })
             .collect();
 
@@ -204,6 +207,7 @@ fn needs_fresh_cwd(process: &Process) -> bool {
 fn process_info(
     process: &Process,
     state: RunState,
+    cwd: Option<&std::path::Path>,
     previous: &HashSet<ProcessIdentity>,
 ) -> ProcessInfo {
     let identity = ProcessIdentity {
@@ -220,7 +224,7 @@ fn process_info(
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect(),
         exe: process.exe().map(std::path::Path::to_path_buf),
-        cwd: process.cwd().map(std::path::Path::to_path_buf),
+        cwd: cwd.map(std::path::Path::to_path_buf),
         // A process the previous sample did not list has no earlier reading to compare.
         cpu_percent: previous
             .contains(&identity)

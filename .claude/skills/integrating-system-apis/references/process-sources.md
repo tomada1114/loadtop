@@ -24,7 +24,7 @@ in `loadtop-platform`, a fake and a `<port>_contract` in `loadtop-test-support`:
 
 | Port | Answers | macOS adapter |
 |---|---|---|
-| Process table | every same-user process: pid, ppid, start time, name, argv, executable path, cwd, CPU%, RSS, run state, controlling terminal, and the marker variables of its environment | sysinfo |
+| Process table | every same-user process: pid, ppid, start time, name, argv, executable path, cwd, CPU%, RSS, run state, controlling terminal (unknown from sysinfo 0.40), and the marker variables of its environment | sysinfo |
 | Socket table | (pid, TCP port) for every same-user listening socket | `lsof` |
 | Session records | the parsed `~/.claude/sessions/<pid>.json` files | `std::fs` |
 | Project folders | the folder names under `~/.claude/projects/` | `std::fs::read_dir` |
@@ -58,11 +58,12 @@ crosses a port.
   `UpdateKind::OnlyIfNotSet`: a process's environment does not change after `exec`, so
   re-reading it every 2 s for 780 processes is wasted work. cwd can change, and matters
   only for leftover judgement, so it is re-read only for processes whose ppid is 1 and
-  for session roots, in a second refresh right after the full one: on macOS any refresh,
+  for session roots, and never through the sampler's `System`: on macOS any refresh,
   even of a few PIDs, restarts the interval the next CPU% is measured over once 200 ms
   have passed since the last restart (`get_time_interval`, 0.40.4 source, read
-  2026-11-24), so the second refresh must come within that window, and `cwd` for one
-  process (the detail overlay) uses a throwaway `System` of its own.
+  2026-11-24), so the sampler's `System` gets exactly one refresh per sample. The
+  fresh cwd comes from the throwaway `System` that reads run state (below), and `cwd`
+  for one process (the detail overlay) uses a throwaway `System` of its own.
   Measured with that split on 0.40.4: about 20 ms of CPU and 9–10 MB RSS per full scan
   (observed with a prototype, 2026-11-20).
 - **Only the marker variables leave the adapter.** It keeps `CLAUDECODE`,
@@ -84,7 +85,8 @@ crosses a port.
   one keeps the state each process had when it was first refreshed, so it never sees a
   STOP or a CONT (observed with a probe, 2026-11-24). So each sample reads run state
   from a throwaway `System` that refreshes only the same-user PIDs with nothing else
-  asked for; a PID missing there, with another start time, or a zombie is left out.
+  asked for, then the cwd of the ppid-1 processes and session roots among them; a PID
+  missing there, with another start time, or a zombie is left out.
   That read costs about 8–12 ms wall time for 470 same-user processes on top of the
   25–34 ms full refresh (same probe). It is the sleeping mark's only source.
 - **No controlling terminal.** sysinfo 0.40 has no accessor for a process's
