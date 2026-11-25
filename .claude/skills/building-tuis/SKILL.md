@@ -64,7 +64,7 @@ real terminal.
    `error: …`, pointing at `--once`/`--json`, and exits 1, before it samples anything or
    opens the log. Without the check, a script or CI job would hang waiting for a key.
 2. **Log to the file only.** A line written to stdout or stderr while the screen owns
-   the terminal corrupts the frame, so the TUI composes with `compose(false)`.
+   the terminal corrupts the frame, so the TUI starts with `start(false)`.
 3. **Install the panic hook first**, then enter raw mode and the alternate screen. The
    release profile's `panic = "abort"` never unwinds back to `run`, so the hook is the
    only code that can restore the terminal before the panic message prints.

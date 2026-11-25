@@ -13,6 +13,7 @@ pub mod classify;
 pub mod counter;
 pub mod process_table;
 pub mod project_folders;
+pub mod report;
 pub mod sample;
 pub mod session_records;
 pub mod signals;
@@ -36,7 +37,12 @@ pub use process_table::{
 pub use project_folders::{
     ProjectFolders, ProjectFoldersError, encode_project_path, is_inside_project,
 };
-pub use sample::Sample;
+pub use report::{
+    ClaudeReport, JsonReport, LeftoverReport, MachineReport, NestedSessionReport,
+    ProcessKindReport, ProcessReport, SCHEMA_VERSION, SessionKindReport, SessionReport,
+    StateReport, TierReport,
+};
+pub use sample::{Sample, SamplePorts};
 pub use session_records::{SessionRecord, SessionRecords, SessionRecordsError, record_is_valid};
 pub use signals::{Signal, SignalError, SignalOutcome, Signals};
 pub use socket_table::{ListeningPort, SocketError, SocketTable};

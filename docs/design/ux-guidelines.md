@@ -114,9 +114,11 @@ says.
 | Dialog warnings | the leading `!` | Yellow |
 | Trend | — (supplementary; the row's numbers carry the value) | None |
 
-- No color when `NO_COLOR` is set (any value, per no-color.org), when `TERM=dumb`, or
-  when stdout is not a terminal (`--once` piped). Modifiers stay in the TUI; `--once`
-  piped is plain text.
+- The table applies to the TUI only. `--once` and `--json` print plain text always, on
+  a terminal as well as in a pipe or a file, since their output is data a person may
+  paste or a script may read (`designing-clis` › "stdout is data").
+- In the TUI, no color when `NO_COLOR` is set (any value, per no-color.org) or when
+  `TERM=dumb`.
 - Thresholds are fixed in v1; there are no settings (requirements Non-goals).
 
 ## Language and copy

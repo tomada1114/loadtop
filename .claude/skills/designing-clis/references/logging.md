@@ -12,7 +12,7 @@ runs is `running-the-app`.
   `tracing` dependency and logs nothing. `tracing` gives one logging API across every
   crate that logs.
 - Only the binary installs a subscriber (`loadtop_platform::init_logging`, which
-  `compose` calls).
+  `start` in `main.rs` calls).
 - Files go to `~/Library/Logs/<bundle id>/` on macOS and `$XDG_STATE_HOME/loadtop/logs/`
   (default `~/.local/state/loadtop/logs/`) on Linux (`loadtop_platform::log_dir`), as
   `loadtop.YYYY-MM-DD.log`, one per day, and the newest 14 are kept. Retention counts
@@ -20,7 +20,7 @@ runs is `running-the-app`.
   writer gets its own directory rather than sharing this one.
 - The writer is synchronous: the volume is low, and an early `process::exit` would
   drop a background writer's last lines.
-- A debug build of a plain subcommand also copies each line to stderr (`compose(true)`);
+- A debug build of a plain subcommand also copies each line to stderr (`start(true)`);
   a release build writes the file only.
 - While the screen owns the terminal it logs to the file only: a line on stdout or
   stderr would corrupt the frame (`building-tuis`).

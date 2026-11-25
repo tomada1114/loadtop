@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `loadtop --once` prints every running Claude Code session and leftover, with the
+  processes each started, as indented plain text, and exits; nothing is signalled.
+- `loadtop --json` prints the same sample as one JSON document on one line
+  (`schema_version` 1, snake_case keys); `--json` implies `--once`.
+- `--interval <seconds>` sets the screen's refresh interval, from 1 to 10 (default 2);
+  given with `--once` or `--json` it is a usage error (exit 2).
+- `--once` and `--json` exit 1 with `error: can't read the process list: …` when the
+  process table cannot be read, and 1 when `HOME` is unset or stdout cannot be written.
+
 ### Changed
 
 - **Breaking:** `loadtop` with no arguments opens the full-screen view; the `tui` and

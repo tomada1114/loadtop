@@ -100,7 +100,7 @@ reading the clock is banned, not representing time.
   and each field's `///` says why it has that value.
 - The binary builds it and passes it in, so a test passes a tiny one to reach a
   boundary in one step. In the sample, `Tuning` lives in
-  `crates/loadtop-core/src/counter/mod.rs`, `compose` in `crates/loadtop/src/main.rs`
+  `crates/loadtop-core/src/counter/mod.rs`, `screen` in `crates/loadtop/src/main.rs`
   passes `Tuning::default()`, and `crates/loadtop-core/tests/counter_service.rs` uses
   `Tuning::new(0, 2)`.
 - When fields only make sense together, keep them private and let a constructor refuse

@@ -156,7 +156,7 @@ your first real core module, so the coverage floor always has code to measure.
 **The binary** (`crates/loadtop`):
 
 - [ ] `src/main.rs` — the `counter` subcommand and its handler (keep `--help`,
-      `--version`, `compose`, and the exit-code convention), its wording in
+      `--version`, `start`, and the exit-code convention), its wording in
       `src/wording.rs`, and its tests in `tests/cli.rs`
 - [ ] `src/tui/` — the counter view in `view.rs` and the counter wiring in `mod.rs`;
       keep the terminal's enter, leave, and panic-hook code for your own screen, or
