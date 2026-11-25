@@ -306,7 +306,9 @@ leftover acme-api · closed session 8b41d0e7    96.3%  740M
 - Same order as S1, but the full tree with no folding: `--once` is the accessible path
   (ux-guidelines), so it hides nothing. Indentation instead of box-drawing characters,
   so it pastes cleanly.
-- No color when stdout is not a terminal.
+- Plain text always, on a terminal as well as in a pipe or a file: no color and no
+  terminal control (ux-guidelines). A control character in a command line, a session
+  name, or a path is shown escaped (`\n`, `\t`, `\x1b`), so each process stays one line.
 
 ## 4. Flows
 

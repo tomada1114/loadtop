@@ -48,7 +48,13 @@ ux-flows T1, laid out by `crates/loadtop/src/once.rs` and pinned by its unit tes
   the ports and `paused` when present, two spaces apart, with trailing spaces trimmed.
   The command is two spaces per level, the name, and the arguments, cut at 27
   characters to 26 and `…`. A session's root is its group line, so its children start
-  at level 0; a leftover's top is a process line at level 0.
+  at level 0, and its own ports and `paused` follow its group line by the same rule; a
+  leftover's top is a process line at level 0. A nested session's kind column holds its
+  session word (`headless`), which pushes the rest of that line right.
+- **Control characters** (C0, DEL, C1) in a name, an argument, a session name, a status,
+  or a path are shown as `\n`, `\t`, `\r`, or `\xNN` before the line is measured and
+  cut, so no value can break a line or drive the terminal. `--json` leaves escaping to
+  JSON.
 - **Units.** CPU% has one decimal and `%`; memory is whole MiB below 1 GiB (`612M`),
   else GiB with one decimal and `.0` dropped (`1.6G`, `16G`), `0` when zero; anything
   unknown is `-`. Ports are `:5173` style, `-` when the sockets could not be read.

@@ -4,10 +4,9 @@
 
 use std::path::Path;
 
-use loadtop_core::{
-    ChildKind, Classification, Group, GroupKind, LeftoverTier, Node, PortsView, RunState,
-    SessionKind, home_relative,
-};
+use std::fmt::Write as _;
+
+use loadtop_core::{Classification, Group, GroupKind, Node, PortsView, RunState, home_relative};
 
 use crate::wording;
 
@@ -56,13 +55,12 @@ pub fn render(classification: &Classification, home: &Path) -> String {
 fn header(classification: &Classification) -> String {
     let machine = classification.machine;
     let claude = classification.claude_totals;
-    format!(
-        "CPU Claude {} cores · all {} of {}   MEM Claude {} · used {}",
-        cores(claude.cpu_percent),
-        cores(machine.cpu_percent),
+    wording::once_header(
+        &cores(claude.cpu_percent),
+        &cores(machine.cpu_percent),
         machine.cpu_count,
-        memory(claude.rss_bytes),
-        used_of_total(machine.memory_used_bytes, machine.memory_total_bytes),
+        &memory(claude.rss_bytes),
+        &used_of_total(machine.memory_used_bytes, machine.memory_total_bytes),
     )
 }
 
@@ -70,58 +68,53 @@ fn group_line(group: &Group, home: &Path) -> String {
     let project = group
         .project
         .as_deref()
-        .map(|path| home_relative(path, home).to_string_lossy().into_owned());
+        .map(|path| visible(&home_relative(path, home).to_string_lossy()));
+    let shown = |text: &Option<String>| text.as_deref().map(visible);
     let (word, parts) = match &group.kind {
-        GroupKind::Session(facts) => {
-            let word = match facts.kind {
-                SessionKind::Terminal => "terminal",
-                SessionKind::Desktop => "desktop",
-                SessionKind::Headless => "headless",
-            };
-            (
-                word,
-                vec![project, facts.name.clone(), facts.status.clone()],
-            )
-        }
+        GroupKind::Session(facts) => (
+            wording::session_kind(facts.kind),
+            vec![project, shown(&facts.name), shown(&facts.status)],
+        ),
         GroupKind::Leftover {
-            tier: LeftoverTier::Confirmed,
+            tier,
             closed_session_id,
         } => {
             let closed = closed_session_id.as_deref().map(|id| {
                 let short: String = id.chars().take(SHORT_ID_LEN).collect();
-                format!("closed session {short}")
+                wording::closed_session(&visible(&short))
             });
-            ("leftover", vec![project, closed])
+            (wording::leftover_kind(*tier), vec![project, closed])
         }
-        GroupKind::Leftover {
-            tier: LeftoverTier::Probable,
-            ..
-        } => ("leftover?", vec![project]),
     };
     let label: Vec<String> = parts.into_iter().flatten().collect();
     // At least one space after the kind word, which `leftover?` fills to 9 on its own.
     let start = format!("{word:<8} {}", label.join(" · "));
     let width = GROUP_CPU_COLUMN.max(start.chars().count() + 2);
-    format!(
+    let mut line = format!(
         "{start:<width$}{:>6}  {:>4}",
         cpu(group.totals.cpu_percent),
         memory(group.totals.rss_bytes),
-    )
+    );
+    // A session's root has no process line of its own, so its ports and pause show here;
+    // a leftover's top has its own line.
+    if let GroupKind::Session(_) = group.kind {
+        push_tail(&mut line, &group.root);
+    }
+    line
 }
 
 fn process_lines(node: &Node, depth: usize, lines: &mut Vec<String>) {
     let process = &node.process;
     let mut command = INDENT.repeat(depth);
-    command.push_str(&process.name);
+    command.push_str(&visible(&process.name));
     for arg in process.argv.iter().skip(1) {
         command.push(' ');
-        command.push_str(arg);
+        command.push_str(&visible(arg));
     }
-    let kind = match node.child_kind {
-        ChildKind::Tool => "tool",
-        ChildKind::Mcp => "mcp",
-        ChildKind::Unmarked | ChildKind::Unreadable => "-",
-    };
+    let kind = node.nested_session.as_ref().map_or_else(
+        || wording::child_kind(node.child_kind),
+        |facts| wording::session_kind(facts.kind),
+    );
     let mut line = format!(
         "  {:>5}  {:<COMMAND_FIELD_WIDTH$}{kind:<4}  {:>6}  {:>4}",
         process.identity.pid,
@@ -129,9 +122,19 @@ fn process_lines(node: &Node, depth: usize, lines: &mut Vec<String>) {
         cpu(process.cpu_percent),
         memory(process.rss_bytes),
     );
+    push_tail(&mut line, node);
+    lines.push(line);
+    for child in &node.children {
+        process_lines(child, depth + 1, lines);
+    }
+}
+
+/// Appends a process's ports and its paused mark, each two spaces on and only when
+/// present.
+fn push_tail(line: &mut String, node: &Node) {
     let ports = ports(&node.ports);
-    let paused = match process.state {
-        RunState::Stopped => "paused",
+    let paused = match node.process.state {
+        RunState::Stopped => wording::PAUSED,
         RunState::Running => "",
     };
     for tail in [ports.as_str(), paused] {
@@ -140,10 +143,25 @@ fn process_lines(node: &Node, depth: usize, lines: &mut Vec<String>) {
             line.push_str(tail);
         }
     }
-    lines.push(line);
-    for child in &node.children {
-        process_lines(child, depth + 1, lines);
+}
+
+/// `text` with every control character (C0, DEL, C1) shown as an escape: `\n`, `\t`,
+/// `\r`, else `\xNN`. A process's argv, a session's name, or a path can hold them, and
+/// raw they would break the one-line-per-process layout or drive the terminal.
+fn visible(text: &str) -> String {
+    let mut shown = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            '\n' => shown.push_str("\\n"),
+            '\t' => shown.push_str("\\t"),
+            '\r' => shown.push_str("\\r"),
+            c if c.is_control() => {
+                let _ = write!(shown, "\\x{:02x}", u32::from(c));
+            }
+            c => shown.push(c),
+        }
     }
+    shown
 }
 
 /// `text` cut to [`COMMAND_TEXT_MAX`] characters, the last one `…` when it was longer.
@@ -220,7 +238,8 @@ mod tests {
     use std::path::PathBuf;
 
     use loadtop_core::{
-        EnvRead, MachineTotals, ProcessIdentity, ProcessInfo, SessionFacts, Totals,
+        ChildKind, EnvRead, LeftoverTier, MachineTotals, ProcessIdentity, ProcessInfo,
+        SessionFacts, SessionKind, Totals,
     };
     use loadtop_test_support::process_with;
 
@@ -509,6 +528,93 @@ mod tests {
         assert_eq!(
             lines[2],
             "  70001  node                         -          -  412M  -"
+        );
+    }
+
+    #[test]
+    fn control_characters_in_a_command_are_shown_escaped() {
+        let mut classification = t1();
+        classification.groups.truncate(1);
+        let odd = node(
+            process(
+                70010,
+                "sh",
+                &["sh", "-c", "a\nb\tc\u{7f}\u{9b}"],
+                Some(1.0),
+                MB,
+            ),
+            ChildKind::Tool,
+            &[],
+            vec![],
+        );
+        classification.groups[0].root.children = vec![odd];
+        let text = render(&classification, Path::new(HOME));
+        assert_eq!(text.lines().count(), 3, "{text}");
+        assert_eq!(
+            text.lines().nth(2),
+            Some("  70010  sh -c a\\nb\\tc\\x7f\\x9b        tool    1.0%    1M")
+        );
+    }
+
+    #[test]
+    fn control_characters_in_a_session_name_are_shown_escaped() {
+        let mut classification = t1();
+        classification.groups.truncate(1);
+        classification.groups[0].kind = GroupKind::Session(SessionFacts {
+            kind: SessionKind::Desktop,
+            name: Some("\u{1b}[2Jwipe".to_owned()),
+            status: None,
+            session_ids: BTreeSet::new(),
+        });
+        let text = render(&classification, Path::new(HOME));
+        assert!(!text.contains('\u{1b}'), "{text:?}");
+        assert!(
+            text.lines()
+                .nth(1)
+                .is_some_and(|line| line.starts_with("desktop  ~/code/acme-web · \\x1b[2Jwipe  ")),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn a_paused_session_root_shows_its_ports_and_paused_on_the_group_line() {
+        let mut classification = t1();
+        classification.groups.truncate(1);
+        let root = &mut classification.groups[0].root;
+        root.process.state = RunState::Stopped;
+        root.ports = PortsView::Read(vec![8080]);
+        assert_eq!(
+            lines(&classification)[1],
+            "desktop  ~/code/acme-web · Fix checkout flow · busy  182.0%  1.6G  :8080  paused"
+        );
+    }
+
+    #[test]
+    fn a_nested_session_shows_its_kind_word() {
+        let mut classification = t1();
+        classification.groups.truncate(1);
+        let mut nested = node(
+            process(
+                70011,
+                "claude",
+                &["claude", "-p", "fix"],
+                Some(2.0),
+                50 * MB,
+            ),
+            ChildKind::Unreadable,
+            &[],
+            vec![],
+        );
+        nested.nested_session = Some(SessionFacts {
+            kind: SessionKind::Headless,
+            name: None,
+            status: None,
+            session_ids: BTreeSet::new(),
+        });
+        classification.groups[0].root.children = vec![nested];
+        assert_eq!(
+            lines(&classification)[2],
+            "  70011  claude -p fix                headless    2.0%   50M"
         );
     }
 
