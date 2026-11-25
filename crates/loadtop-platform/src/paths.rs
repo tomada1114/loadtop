@@ -12,6 +12,27 @@ pub const XDG_APP_NAME: &str = "loadtop";
 /// The counter's file name inside [`app_data_dir`].
 pub const COUNTER_FILE_NAME: &str = "counter.json";
 
+/// The directory under the home directory where Claude Code keeps its state.
+const CLAUDE_DIR_NAME: &str = ".claude";
+
+/// Claude Code's session records, one `<pid>.json` per live session, inside
+/// [`CLAUDE_DIR_NAME`].
+const CLAUDE_SESSIONS_DIR_NAME: &str = "sessions";
+
+/// Claude Code's project folders, one per project it has run in, inside
+/// [`CLAUDE_DIR_NAME`].
+const CLAUDE_PROJECTS_DIR_NAME: &str = "projects";
+
+/// Where `lsof` ships on macOS: an absolute path, so the socket adapter does not depend
+/// on the `PATH` loadtop was started with.
+#[cfg(target_os = "macos")]
+pub const LSOF_PATH: &str = "/usr/sbin/lsof";
+
+/// Where `lsof` usually lives on Linux; a distribution without it makes the socket
+/// adapter report the ports as unavailable.
+#[cfg(not(target_os = "macos"))]
+pub const LSOF_PATH: &str = "/usr/bin/lsof";
+
 /// The user's home directory, from `HOME`. Tests point `HOME` at a temporary directory,
 /// so nothing they run touches the real home directory.
 #[must_use]
@@ -91,6 +112,18 @@ pub fn counter_file(home: &Path) -> PathBuf {
     app_data_dir(home).join(COUNTER_FILE_NAME)
 }
 
+/// `~/.claude/sessions`: where Claude Code writes a record for each live session.
+#[must_use]
+pub fn claude_sessions_dir(home: &Path) -> PathBuf {
+    home.join(CLAUDE_DIR_NAME).join(CLAUDE_SESSIONS_DIR_NAME)
+}
+
+/// `~/.claude/projects`: where Claude Code keeps one folder per project it has run in.
+#[must_use]
+pub fn claude_projects_dir(home: &Path) -> PathBuf {
+    home.join(CLAUDE_DIR_NAME).join(CLAUDE_PROJECTS_DIR_NAME)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,6 +186,19 @@ mod tests {
                 "{value:?}"
             );
         }
+    }
+
+    #[test]
+    fn claude_directories_are_under_dot_claude_in_home() {
+        let home = Path::new("/Users/someone");
+        assert_eq!(
+            claude_sessions_dir(home),
+            PathBuf::from("/Users/someone/.claude/sessions")
+        );
+        assert_eq!(
+            claude_projects_dir(home),
+            PathBuf::from("/Users/someone/.claude/projects")
+        );
     }
 
     #[cfg(target_os = "macos")]
