@@ -44,7 +44,7 @@ How `JsonFileCounterStore` reads and writes it (its rustdoc in
 - **A bad file is never overwritten silently.** A missing file is a fresh counter; an
   unreadable file or an unknown `version` is a `corrupt` storage error: showing,
   incrementing, and decrementing fail and leave it untouched, and only a reset — the
-  user's explicit request to start over, `r` in `loadtop tui` — replaces it.
+  user's explicit request to start over, `r` in the screen — replaces it.
 - **Versioning.** A field is added with `#[serde(default)]`; renaming or removing one
   bumps `version` (`FORMAT_VERSION`), and the reader keeps accepting the old version,
   with a test that reads a sample of it.

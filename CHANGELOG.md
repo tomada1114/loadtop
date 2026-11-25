@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `loadtop` with no arguments opens the full-screen view; the `tui` and
+  `counter` subcommands are removed. Without a terminal on both standard input and
+  standard output, bare `loadtop` refuses with an error and exits 1.
+
 ### Removed
 
 - The optional `openrouter` Cargo feature and its `loadtop llm ask` subcommand: loadtop

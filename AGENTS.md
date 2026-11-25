@@ -98,7 +98,7 @@ opens a window or takes focus.
 |---|---|
 | `crates/loadtop-core/` | `just test-fast <filter>`, then `just test-core` (the floors) and `just lint` |
 | `crates/loadtop-platform/` | `just test-platform`; an `#[ignore]`d test needs the human's `just test-local` |
-| `crates/loadtop-test-support/`, `crates/loadtop/` | `just test-core`, then `just test-platform`; the terminal loop needs the human's `loadtop tui` run |
+| `crates/loadtop-test-support/`, `crates/loadtop/` | `just test-core`, then `just test-platform`; the terminal loop needs the human's run of bare `loadtop` |
 | `xtask/`, a harness check | `cargo nextest run -p xtask -p xtask-guard`, then `just test-xtask`, `just lint`, `just check-harness` |
 | `lefthook.yml` | `just test-xtask`, then `just verify-hooks` |
 | A recipe, skill, workflow, label, issue form, ruleset, `## Product`, core's forbidden-crate lists (`deny.toml`'s `wrappers`), `.claude/settings.json` | `just check-harness`; for a workflow also `mise exec -- actionlint` and `mise exec -- zizmor .`, for a skill's scripts `just test-scripts` |
@@ -209,7 +209,7 @@ Skills live in `.claude/skills/`, the one tree: edit a skill there, in place.
 | `placing-tests` | Where a test goes; its coverage floor |
 | `designing-core-logic` | Core logic: ports, transitions, views |
 | `designing-clis` | A subcommand, its output, logging |
-| `building-tuis` | The `loadtop tui` screen |
+| `building-tuis` | The screen bare `loadtop` opens |
 | `designing-errors` | Error enums, wording, `ERR_*` codes |
 | `integrating-system-apis` | OS calls in `loadtop-platform`; file formats |
 | `running-the-app` | Seeing a change work |
@@ -317,7 +317,8 @@ PostToolUse hook, any step an agent runs to verify its work — may show a windo
 keyboard focus, move the pointer, raise a permission, Keychain, or Gatekeeper prompt, or
 take over a terminal.
 
-- Never run `loadtop tui` (`cargo run -p loadtop -- tui` included). No check needs a TTY:
+- Never run bare `loadtop` (`cargo run -p loadtop` without `--once`/`--json` included,
+  and any path to the binary). No check needs a TTY:
   the TUI is tested through ratatui's `TestBackend` (`building-tuis`). When only the
   real terminal shows a change, ask the human to run it (`running-the-app`).
 - For evidence, use the tests, `just test-platform`, a plain subcommand run against a

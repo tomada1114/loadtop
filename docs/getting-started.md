@@ -70,7 +70,7 @@ by recipe there (`just lint`, `just test-core`, `just test-xtask`, `just test-pl
 `just check-harness`) rather than as one command.
 
 No human is at the VM. A step that needs one (`just test-local`, `just logs-follow`,
-`just install-cli`, a `loadtop tui` run) is never run in a cloud session, even when asked:
+`just install-cli`, a run of bare `loadtop`) is never run in a cloud session, even when asked:
 the agent leaves it unrun and names it in the pull request as needing a local run.
 
 ## Everyday commands
@@ -100,13 +100,11 @@ On macOS the tool keeps its data in
 The `loadtop` binary reads and writes that file:
 
 ```bash
-cargo run --locked -p loadtop -- counter show
-cargo run --locked -p loadtop -- counter increment
-cargo run --locked -p loadtop -- tui   # full screen: +/Up, -/Down, r to reset, q to quit
+cargo run --locked -p loadtop   # full screen: +/Up, -/Down, r to reset, q to quit
 ```
 
-`tui` takes over the terminal you run it from until you quit, and restores it on the
-way out. It is yours to run: no check and no agent starts it.
+Bare `loadtop` (and `cargo run -p loadtop` without `--once` or `--json`) takes over the
+terminal you run it from until you quit, and restores it on the way out. It is yours to run: no check and no agent starts it.
 
 To run `loadtop` from any directory, `just install-cli` installs it into `~/.cargo/bin`
 (`cargo install --locked --path crates/loadtop`). It writes outside the checkout, so it is
@@ -162,7 +160,7 @@ your first real core module, so the coverage floor always has code to measure.
       `src/wording.rs`, and its tests in `tests/cli.rs`
 - [ ] `src/tui/` — the counter view in `view.rs` and the counter wiring in `mod.rs`;
       keep the terminal's enter, leave, and panic-hook code for your own screen, or
-      remove the `tui` subcommand if your tool has none
+      remove the screen bare `loadtop` opens if your tool has none
 
 **Documents and agent guidance**:
 

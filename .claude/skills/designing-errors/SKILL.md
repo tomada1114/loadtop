@@ -65,7 +65,7 @@ every variant and no `_ =>` arm (`counter_error` and `storage_error` in the samp
 compile until someone decides what the user is told.
 
 - A subcommand prints `error: <wording>` on stderr and exits 1 for every runtime error;
-  the `tui` screen shows the same sentence on its error line. One sentence per variant,
+  the screen shows the same sentence on its error line. One sentence per variant,
   wherever the user meets it. The streams and codes are `designing-clis`'.
 - An error that may leave the process as data, in a `--json` consumer's output or a
   file, derives `Serialize` and is internally tagged, so its variant becomes a stable

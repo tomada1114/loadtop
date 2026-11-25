@@ -15,9 +15,16 @@
 //! are where these recipes belong. `clean` and `prune-temp` are absent on purpose: they
 //! delete only build output and known-safe temporary directories. The same matching
 //! covers the commands outside `just` that need a human ([`HUMAN_COMMANDS`]): `cargo xtask
-//! sync-labels`, `apply-ruleset`, and `bootstrap`, `cargo install`, and `cargo run … tui`,
-//! each also caught when a rule spells it out anywhere (`Bash(cd x && cargo install …)`).
-//! The file is optional.
+//! sync-labels`, `apply-ruleset`, and `bootstrap`, `cargo install`, and every spelling
+//! that opens the screen (bare `loadtop`, a path to it such as `./target/debug/loadtop`,
+//! `loadtop --interval 3`, `cargo run`, `cargo run -p loadtop` with or without `--` and
+//! `--interval`, and the old `cargo run … tui`), each also caught when a rule spells it out
+//! anywhere (`Bash(cd x && cargo install …)`). A spelled-out screen command is `cargo run`
+//! with a later `tui` word, `cargo run` with `-p loadtop`, or `loadtop` as a command word
+//! (the first word of a command after `&&`, `||`, `;`, or `|`, any `NAME=value`
+//! assignments, and a `mise exec --`, read as the last part of its path); the last two are
+//! not reported when the command also carries `--once` or `--json` (a trailing `:*` or `*`
+//! aside), which print one sample and never open the screen. The file is optional.
 //!
 //! Errors: `ERR_CHECK_INPUT_UNREADABLE` (`.claude/settings.json` is not JSON),
 //! `ERR_CHECK_ALLOW_HUMAN_RECIPE` (an `allow` rule admits one of the recipes).
@@ -41,24 +48,36 @@ pub(super) const HUMAN_RECIPES: [&str; 7] = [
 /// The commands outside `just` that row keeps out of `allow`, each as the label a
 /// finding names and the command lines a rule is matched against: the `cargo xtask` tasks
 /// that write to GitHub or rewrite the repository, an install outside the checkout, and
-/// the full-screen TUI, which takes over a terminal.
+/// the full-screen view bare `loadtop` opens, which takes over a terminal.
 pub(super) const HUMAN_COMMANDS: [&str; 5] = [
     "cargo xtask sync-labels",
     "cargo xtask apply-ruleset",
     "cargo xtask bootstrap",
     "cargo install",
-    TUI,
+    SCREEN,
 ];
 
-const TUI: &str = "cargo run … tui";
+const SCREEN: &str = "loadtop (the screen)";
+
+/// The flags that print one sample instead of opening the screen.
+const ONE_SAMPLE: [&str; 2] = ["--once", "--json"];
 
 /// The command lines a [`HUMAN_COMMANDS`] label stands for.
 fn command_lines(label: &str) -> Vec<String> {
-    if label == TUI {
-        vec![
-            "cargo run -p app -- tui".to_owned(),
-            "cargo run -- tui".to_owned(),
+    if label == SCREEN {
+        [
+            "loadtop",
+            "./target/debug/loadtop",
+            "loadtop --interval 3",
+            "cargo run",
+            "cargo run -p loadtop",
+            "cargo run --locked -p loadtop --",
+            "cargo run -p loadtop -- --interval 3",
+            "cargo run -p app -- tui",
+            "cargo run -- tui",
         ]
+        .map(str::to_owned)
+        .to_vec()
     } else {
         vec![label.to_owned()]
     }
@@ -192,13 +211,65 @@ fn names_command(rule: &str, command: &str) -> bool {
     })
 }
 
-/// Whether `rule` names `cargo run` with a later `tui` word.
-fn names_tui(rule: &str) -> bool {
-    rule.match_indices("cargo run").any(|(at, _)| {
+/// Whether `rule` spells out a command that opens the screen: `cargo run` with a later
+/// `tui` word, or a command that `opens_screen` reports.
+fn names_screen(rule: &str) -> bool {
+    let tui = rule.match_indices("cargo run").any(|(at, _)| {
         rule[at..]
             .split(|c: char| !name_char(c))
             .any(|word| word == "tui")
-    })
+    });
+    tui || commands(rule).iter().any(|words| opens_screen(words))
+}
+
+/// The commands a rule's text holds, each as its words, split at `&&`, `||`, `;`, and `|`.
+fn commands(rule: &str) -> Vec<Vec<&str>> {
+    let inner = rule
+        .strip_prefix("Bash(")
+        .and_then(|rest| rest.strip_suffix(')'))
+        .unwrap_or(rule);
+    inner
+        .split(['&', ';', '|'])
+        .map(|command| command.split_whitespace().collect::<Vec<_>>())
+        .filter(|words| !words.is_empty())
+        .collect()
+}
+
+/// Whether one command's words open the screen: `loadtop` (or a path ending in it) as the
+/// command word, or `cargo run` given `-p loadtop`, either without a one-sample flag. A
+/// trailing `:*` or `*` on a word is the rule's wildcard, not part of the word, and a
+/// leading `mise exec --` is seen through.
+fn opens_screen(words: &[&str]) -> bool {
+    let words: Vec<&str> = words
+        .iter()
+        .map(|word| word.trim_end_matches(":*").trim_end_matches('*'))
+        .collect();
+    if words.iter().any(|word| ONE_SAMPLE.contains(word)) {
+        return false;
+    }
+    let Some(first) = words.iter().position(|word| !is_assignment(word)) else {
+        return false;
+    };
+    let mut words = &words[first..];
+    if words.starts_with(&["mise", "exec", "--"]) {
+        words = &words[3..];
+    }
+    let Some(command) = words.first() else {
+        return false;
+    };
+    if command.rsplit('/').next() == Some("loadtop") {
+        return true;
+    }
+    words.starts_with(&["cargo", "run"])
+        && words[2..]
+            .windows(2)
+            .any(|pair| pair == ["-p", "loadtop"] || pair == ["--package", "loadtop"])
+}
+
+/// Whether `word` is a `NAME=value` environment assignment before a command.
+fn is_assignment(word: &str) -> bool {
+    word.split_once('=')
+        .is_some_and(|(name, _)| !name.is_empty() && name.chars().all(name_char))
 }
 
 /// The labels of [`HUMAN_COMMANDS`] that one `allow` rule admits.
@@ -209,8 +280,8 @@ fn admitted_commands(rule: &str) -> Vec<&'static str> {
     HUMAN_COMMANDS
         .into_iter()
         .filter(|label| {
-            let spelled = if *label == TUI {
-                names_tui(rule)
+            let spelled = if *label == SCREEN {
+                names_screen(rule)
             } else {
                 names_command(rule, label)
             };
@@ -288,7 +359,7 @@ pub(super) fn run(input: &Input<'_>) -> Vec<FailureDetails> {
 
 #[cfg(test)]
 mod tests {
-    use super::{HUMAN_COMMANDS, HUMAN_RECIPES, admitted, admitted_commands, run};
+    use super::{HUMAN_COMMANDS, HUMAN_RECIPES, SCREEN, admitted, admitted_commands, run};
     use crate::check_harness::test_support::{codes, run_at};
     use crate::fail::FailureDetails;
     use crate::test_support::{temp_dir, write};
@@ -335,6 +406,33 @@ mod tests {
     fn passes_routine_rules_and_a_missing_file() {
         assert_eq!(check(Some(&settings(&rules(&[])))), []);
         assert_eq!(check(None), []);
+    }
+
+    #[test]
+    fn passes_rules_that_admit_only_one_sample() {
+        let content = settings(&rules(&[
+            "Bash(loadtop --once)",
+            "Bash(cargo run --locked -p loadtop -- --json)",
+        ]));
+        assert_eq!(check(Some(&content)), []);
+    }
+
+    #[test]
+    fn reports_a_rule_that_opens_the_screen_with_its_line() {
+        let content = settings(&rules(&["Bash(cargo run --locked -p loadtop)"]));
+        let found = check(Some(&content));
+        assert_eq!(codes(&found), ["ERR_CHECK_ALLOW_HUMAN_RECIPE"]);
+        let line = content
+            .split('\n')
+            .position(|l| l.contains("\"Bash(cargo run --locked -p loadtop)\""))
+            .expect("line")
+            + 1;
+        assert_eq!(
+            found[0].summary,
+            format!(
+                ".claude/settings.json:{line} allows \"Bash(cargo run --locked -p loadtop)\", which admits `{SCREEN}`"
+            )
+        );
     }
 
     #[test]
@@ -451,12 +549,26 @@ mod tests {
                 "Bash(cargo install --locked --path crates/app)",
                 "cargo install",
             ),
-            ("Bash(cargo run:*)", "cargo run … tui"),
-            ("Bash(cargo run -p app -- tui)", "cargo run … tui"),
-            (
-                "Bash(cargo run --locked -p tide-pool -- tui)",
-                "cargo run … tui",
-            ),
+            ("Bash(cargo run:*)", SCREEN),
+            ("Bash(cargo run)", SCREEN),
+            ("Bash(cargo run -p loadtop)", SCREEN),
+            ("Bash(cargo run --locked -p loadtop)", SCREEN),
+            ("Bash(cargo run --locked -p loadtop --)", SCREEN),
+            ("Bash(cargo run -p loadtop -- --interval 3)", SCREEN),
+            ("Bash(cargo run --release --package loadtop)", SCREEN),
+            ("Bash(cd x && cargo run -p loadtop)", SCREEN),
+            ("Bash(cargo run -p app -- tui)", SCREEN),
+            ("Bash(cargo run --locked -p tide-pool -- tui)", SCREEN),
+            ("Bash(loadtop)", SCREEN),
+            ("Bash(loadtop:*)", SCREEN),
+            ("Bash(loadtop --interval 3)", SCREEN),
+            ("Bash(./target/debug/loadtop)", SCREEN),
+            ("Bash(~/.cargo/bin/loadtop --interval 5)", SCREEN),
+            ("Bash(HOME=/tmp/x target/debug/loadtop)", SCREEN),
+            ("Bash(just build; target/release/loadtop)", SCREEN),
+            ("Bash(mise exec -- cargo run --locked -p loadtop)", SCREEN),
+            ("Bash(mise exec -- target/debug/loadtop)", SCREEN),
+            ("Bash(cd x && loadtop --interval*)", SCREEN),
         ] {
             assert_eq!(admitted_commands(rule), [command], "{rule}");
         }
@@ -466,6 +578,21 @@ mod tests {
             "Bash(cargo build:*)",
             "Bash(cargo nextest run:*)",
             "Bash(cargo run -p app -- counter show)",
+            "Bash(loadtop --once)",
+            "Bash(loadtop --json)",
+            "Bash(cargo run --locked -p loadtop -- --json)",
+            "Bash(cargo run -p loadtop -- --once)",
+            "Bash(HOME=/tmp/x target/debug/loadtop --once)",
+            "Bash(cargo build -p loadtop)",
+            "Bash(cargo nextest run -p loadtop)",
+            "Bash(cargo run -p xtask)",
+            "Bash(ls crates/loadtop)",
+            "Bash(loadtop-core)",
+            "Bash(=x loadtop-y)",
+            "Bash(loadtop --once:*)",
+            "Bash(cargo run -p loadtop -- --json*)",
+            "Bash(mise exec -- loadtop --once)",
+            "Bash(mise exec --)",
             "Bash(cargo installer)",
             "Read(./cargo install)",
         ] {

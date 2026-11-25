@@ -81,8 +81,8 @@ just logs-follow        # follow the newest log (never ends)
 just install-cli        # install the loadtop binary into ~/.cargo/bin
 ```
 
-`loadtop tui` (or `cargo run --locked -p loadtop -- tui`) is yours to run too: it takes over
-the terminal, so no check and no agent starts it. When you change its terminal loop,
+Bare `loadtop` (or `cargo run --locked -p loadtop` without `--once` or `--json`) is yours
+to run too: it takes over the terminal, so no check and no agent starts it. When you change its terminal loop,
 say in the pull request what you saw.
 
 Run `just test-local` whenever you change an adapter in `crates/loadtop-platform` that

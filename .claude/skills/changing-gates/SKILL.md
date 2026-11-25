@@ -134,7 +134,7 @@ crate has no look-around, so a rule that would need one says it another way
 (when it fires, whom it binds, what it holds), then the gaps and the reasons they stay open: the
 `#[ignore]`d tests only a human runs, `--no-verify` and the hook's other bypasses, a
 ruleset that may not be applied, and a new recipe or test that takes over the Mac or a
-terminal (`loadtop tui`, raw mode, the alternate screen). A gate
+terminal (bare `loadtop`, raw mode, the alternate screen). A gate
 proposed to close any gap is a real gate change and belongs in its pull request as one,
 with its row and its gap there updated or removed.
 

@@ -22,7 +22,7 @@ body:
       label: Steps to Reproduce
       description: Minimal steps to reproduce the behavior.
       placeholder: |
-        1. Run `loadtop ...` (or open `loadtop tui` and press ...)
+        1. Run `loadtop` and press ... (or run `loadtop ...`)
         2. ...
         3. Observe ...
     validations:
@@ -60,7 +60,7 @@ body:
       description: >
         macOS: output of `sw_vers -productVersion`. Linux: the distribution and version
         (`PRETTY_NAME` in `/etc/os-release`). Include the terminal you ran it in when the
-        problem is in `loadtop tui`.
+        problem is in the screen bare `loadtop` opens.
       placeholder: "macOS 26.0, Terminal"
     validations:
       required: true

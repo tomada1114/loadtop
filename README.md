@@ -4,9 +4,8 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/tomada1114/loadtop/badge)](https://scorecard.dev/viewer/?uri=github.com/tomada1114/loadtop)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A personal Rust command-line tool: one binary, `loadtop`, whose clap
-subcommands do the work and whose `tui` subcommand opens a full-screen ratatui view over
-the same core, built and run on macOS and Linux. It ships as a working counter —
+A personal Rust command-line tool: one binary, `loadtop`, which opens a full-screen
+ratatui view when run with no arguments, over one core, built and run on macOS and Linux. It ships as a working counter —
 persisted state, an injected clock, subcommands and a terminal view over one core — with
 coverage floors, architecture boundaries that fail a build, and supply-chain-hardened
 CI, all from the first commit.
@@ -31,15 +30,16 @@ cd loadtop
 mise trust     # approve mise.toml once (mise asks before using an untrusted config)
 just install   # pinned tools via mise and lefthook's git hook
 just check     # everything the machine can run without a human; takes over no terminal
-cargo run --locked -p loadtop -- counter show   # the tool itself
+cargo run --locked -p loadtop -- --version      # the tool itself
 ```
 
 rustup installs the Rust toolchain `rust-toolchain.toml` names the first time `cargo`
 runs (`RUSTUP_AUTO_INSTALL`, on by default:
 <https://rust-lang.github.io/rustup/environment-variables.html>, checked 2026-09-30).
 `just install` needs no `sudo` and opens no installer; a missing Command Line Tools
-install is reported with the command to run. `cargo run --locked -p loadtop -- tui` opens
-the full-screen view in the terminal you run it from; `q` quits.
+install is reported with the command to run. `cargo run --locked -p loadtop` (or bare
+`loadtop` once installed) opens the full-screen view in the terminal you run it from; `q`
+quits.
 
 ## How it is built
 
@@ -49,7 +49,7 @@ the full-screen view in the terminal you run it from; `q` quits.
 - `crates/loadtop-platform` — the adapters that implement core's ports on macOS and Linux.
 - `crates/loadtop-test-support` — one fake and one contract function per port, for tests
   only.
-- `crates/loadtop` — the `loadtop` binary: its subcommands, the `tui` screen, and the wiring.
+- `crates/loadtop` — the `loadtop` binary: its command line, the screen, and the wiring.
 - `xtask/` — repository automation in Rust, run as `cargo xtask <task>`.
 
 The layer rules and what is contract are in [AGENTS.md](AGENTS.md)'s Architecture
