@@ -214,6 +214,7 @@ mod cloud_provision {
     #[test]
     fn a_failing_step_still_exits_zero() {
         let repo = Repo::new();
+        repo.write(".claude/cloud/apt-packages.txt", "# packages\njq\n");
         let run = repo.run_cloud_session("mise rustup cargo lefthook apt-get");
         assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
         assert!(
@@ -225,6 +226,31 @@ mod cloud_provision {
             !repo.root().join("target/.cloud-provision.sha256").exists(),
             "a failed run must not write the stamp, or the next session skips the retry"
         );
+    }
+
+    #[test]
+    fn a_failing_apt_install_alone_warns_and_writes_no_stamp() {
+        let repo = Repo::new();
+        repo.write(".claude/cloud/apt-packages.txt", "# packages\njq\n");
+        let run = repo.run_cloud_session("apt-get");
+        assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
+        assert!(
+            run.stderr.contains("apt-get could not install"),
+            "stderr: {}",
+            run.stderr
+        );
+        assert!(
+            !repo.root().join("target/.cloud-provision.sha256").exists(),
+            "a failed apt install must not write the stamp"
+        );
+    }
+
+    #[test]
+    fn a_package_list_of_comments_only_skips_apt() {
+        let repo = Repo::new();
+        let run = repo.run("setup", &[], "");
+        assert_eq!(run.status, Some(0), "stderr: {}", run.stderr);
+        assert!(!run.called("apt-get"), "calls: {:?}", run.calls);
     }
 
     #[test]
