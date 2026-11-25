@@ -5,7 +5,7 @@ resolver = "3" # explicit: a virtual manifest has no edition to infer it from
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.90" # raise it deliberately: a design change (AGENTS.md)
+rust-version = "1.95" # raise it deliberately: a design change (AGENTS.md)
 license = "MIT"
 publish = false
 
@@ -24,6 +24,9 @@ ratatui = { version = "0.30", default-features = false, features = ["crossterm"]
 regex = { version = "1.13", default-features = false, features = ["std", "unicode", "perf"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# The process table and signals (loadtop-platform only): `system` alone, since disks,
+# networks, components and users go unused.
+sysinfo = { version = "0.40", default-features = false, features = ["system"] }
 tempfile = "3"
 thiserror = "2"
 # The harness checks' TOML reader (xtask only): parsing into `toml::Table` needs `parse`

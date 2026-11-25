@@ -13,7 +13,7 @@ and passes the tests, not that it is the version anyone meant to trust.
   (https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference,
   `groups` › `update-types`, checked 2026-09-30), so it arrives inside a
   `*-minor-and-patch` group, and the survey marks that bump `(major)`. Note removed APIs,
-  a raised minimum Rust version (`rust-version` in `Cargo.toml` is `1.90`, and raising it
+  a raised minimum Rust version (`rust-version` in `Cargo.toml` is `1.95`, and raising it
   is a design change), and new lints.
 - Where to find them: the PR body's release-notes section, or
   `gh release view <tag> --repo <owner>/<repo>`.

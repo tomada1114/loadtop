@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `loadtop` with no arguments opens the full-screen view; the `tui` and
   `counter` subcommands are removed. Without a terminal on both standard input and
   standard output, bare `loadtop` refuses with an error and exits 1.
+- Building loadtop needs Rust 1.95 or later (was 1.90).
 
 ### Removed
 
