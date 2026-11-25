@@ -1,8 +1,6 @@
 //! The ordered rows the screen selects in and the view draws: values and variants only,
 //! never text (ux-flows S1; the visual grammar's Tree and Folded rows).
 
-use std::slice;
-
 use crate::classify::{Classification, Group, GroupKind, Node, Totals};
 use crate::list::fold::{FoldState, Folds, RowId};
 use crate::process_table::{ProcessIdentity, ProcessInfo, RunState};
@@ -28,13 +26,16 @@ pub enum Row<'a> {
         depth: usize,
         /// For each level from 1 to `depth`, whether the row's ancestor at that level
         /// (the row itself last) is the last sibling there, a `+N more` row counting
-        /// as the last at level 1: what the view needs to draw `├─ └─ │`.
+        /// as the last at its level: what the view needs to draw `├─ └─ │`.
         last: Vec<bool>,
     },
     /// The processes of a group's folded subtrees that are not lifted.
     More {
         /// The root identity of its group.
         group: ProcessIdentity,
+        /// Its tree level, as a [`Row::Process`] counts it: 1 under a session's group
+        /// row, 2 under a leftover's top. It is always the last sibling there.
+        depth: usize,
         /// How many processes it stands for.
         count: usize,
         /// Their summed latest CPU % and resident memory.
@@ -66,13 +67,14 @@ impl Row<'_> {
 
 /// The rows of `classification` in its order, each group folded as `folds` says.
 ///
-/// A session's group row stands for its `claude` process, so its subtrees are the
-/// root's children; a leftover's top process is a target of its own, so its one
-/// subtree is the whole tree, top included. A folded group shows its first
-/// `tuning.subtrees_per_group` subtrees whole and one `+N more` row for the rest; an
-/// expanded one shows every subtree; a collapsed one only its group row. Every paused
-/// process a fold hides is lifted out, after the group's other rows, and left out of
-/// the `+N more` row, which is not emitted when it would stand for nothing.
+/// A group's subtrees are its root's children. A session's group row stands for its
+/// `claude` process; a leftover's top process is a target of its own, so it also gets
+/// a row, at level 1, with its subtrees and `+N more` row under it. A folded group
+/// shows its first `tuning.subtrees_per_group` subtrees whole and one `+N more` row
+/// for the rest; an expanded one shows every subtree; a collapsed one only its group
+/// row. Every paused process a fold hides is lifted out, after the group's other rows,
+/// and left out of the `+N more` row, which is not emitted when it would stand for
+/// nothing. The root itself is never lifted: its group row already shows it.
 #[must_use]
 pub fn rows<'a>(
     classification: &'a Classification,
@@ -84,10 +86,14 @@ pub fn rows<'a>(
         let id = group.root.process.identity;
         let fold = folds.state(id);
         out.push(Row::Group { group, fold });
-        let subtrees: &[Node] = match group.kind {
-            GroupKind::Session(_) => &group.root.children,
-            GroupKind::Leftover { .. } => slice::from_ref(&group.root),
+        // A leftover's top has a row of its own above its children; a session's root
+        // is its group row. Either way the folded subtrees are the root's children, so
+        // the root itself is never folded away or lifted.
+        let top_row: &[bool] = match group.kind {
+            GroupKind::Session(_) => &[],
+            GroupKind::Leftover { .. } => &[true],
         };
+        let subtrees = &group.root.children;
         let shown_count = match fold {
             FoldState::Folded => tuning.subtrees_per_group.min(subtrees.len()),
             FoldState::Expanded => subtrees.len(),
@@ -115,13 +121,26 @@ pub fn rows<'a>(
             FoldState::Expanded | FoldState::Collapsed => false,
         };
 
+        match fold {
+            FoldState::Folded | FoldState::Expanded if !top_row.is_empty() => {
+                out.push(Row::Process {
+                    node: &group.root,
+                    group: id,
+                    depth: top_row.len(),
+                    last: top_row.to_vec(),
+                });
+            }
+            FoldState::Folded | FoldState::Expanded | FoldState::Collapsed => {}
+        }
         for (at, node) in shown.iter().enumerate() {
-            let last = at + 1 == shown.len() && !more;
-            push_tree(&mut out, node, id, &[last]);
+            let mut last = top_row.to_vec();
+            last.push(at + 1 == shown.len() && !more);
+            push_tree(&mut out, node, id, &last);
         }
         if more {
             out.push(Row::More {
                 group: id,
+                depth: top_row.len() + 1,
                 count,
                 totals,
             });

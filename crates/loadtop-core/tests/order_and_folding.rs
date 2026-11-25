@@ -636,7 +636,48 @@ mod order_and_folding {
     }
 
     #[test]
-    fn a_leftover_with_four_children_under_its_top_does_not_fold() {
+    fn a_leftover_with_four_children_under_its_top_folds_the_fourth() {
+        let leftover = sample(vec![
+            leftover_top(52143, 0.0),
+            proc(52151, 52143, 4.0),
+            proc(52152, 52143, 3.0),
+            proc(52153, 52143, 2.0),
+            with_rss(proc(52154, 52143, 1.0), MIB),
+        ]);
+        let order = ordered(&[leftover], SortKey::Cpu);
+        let all = rows(&order, &Folds::default(), fold_tuning());
+        assert_eq!(
+            seen(&all),
+            vec![
+                Seen::Group(52143, FoldState::Folded),
+                Seen::Process(52143, vec![true]),
+                Seen::Process(52151, vec![true, false]),
+                Seen::Process(52152, vec![true, false]),
+                Seen::Process(52153, vec![true, false]),
+                Seen::More(1, Some(1.0), MIB),
+            ]
+        );
+        // The fold row sits under the top, one level below it.
+        assert!(
+            matches!(all.last(), Some(Row::More { depth: 2, .. })),
+            "{:?}",
+            all.last()
+        );
+    }
+
+    #[test]
+    fn a_session_fold_row_sits_at_the_first_level() {
+        let order = ordered(&[five_subtrees(false)], SortKey::Cpu);
+        let all = rows(&order, &Folds::default(), fold_tuning());
+        assert!(
+            matches!(all.last(), Some(Row::More { depth: 1, .. })),
+            "{:?}",
+            all.last()
+        );
+    }
+
+    #[test]
+    fn an_expanded_leftover_shows_every_child_of_its_top() {
         let leftover = sample(vec![
             leftover_top(52143, 0.0),
             proc(52151, 52143, 4.0),
@@ -645,16 +686,49 @@ mod order_and_folding {
             proc(52154, 52143, 1.0),
         ]);
         let order = ordered(&[leftover], SortKey::Cpu);
+        let folds = Folds::default().expand(RowId::Group(id(52143)));
         assert_eq!(
-            rows_of(&order, &Folds::default()),
+            rows_of(&order, &folds),
             vec![
-                Seen::Group(52143, FoldState::Folded),
+                Seen::Group(52143, FoldState::Expanded),
                 Seen::Process(52143, vec![true]),
                 Seen::Process(52151, vec![true, false]),
                 Seen::Process(52152, vec![true, false]),
                 Seen::Process(52153, vec![true, false]),
                 Seen::Process(52154, vec![true, true]),
             ]
+        );
+    }
+
+    #[test]
+    fn a_collapsed_leftover_lifts_its_paused_children_only() {
+        let leftover = sample(vec![
+            leftover_top(52143, 0.0),
+            stopped(proc(52151, 52143, 0.0)),
+            proc(52152, 52143, 1.0),
+        ]);
+        let order = ordered(&[leftover], SortKey::Cpu);
+        let folds = Folds::default().collapse(RowId::Group(id(52143)));
+        assert_eq!(
+            rows_of(&order, &folds),
+            vec![
+                Seen::Group(52143, FoldState::Collapsed),
+                Seen::Lifted(52151),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_paused_leftover_top_in_a_collapsed_group_has_one_row() {
+        let leftover = sample(vec![
+            stopped(leftover_top(52143, 0.0)),
+            proc(52150, 52143, 1.0),
+        ]);
+        let order = ordered(&[leftover], SortKey::Cpu);
+        let folds = Folds::default().collapse(RowId::Group(id(52143)));
+        assert_eq!(
+            rows_of(&order, &folds),
+            vec![Seen::Group(52143, FoldState::Collapsed)]
         );
     }
 
@@ -710,7 +784,7 @@ mod order_and_folding {
     }
 
     #[test]
-    fn a_leftover_group_shows_its_top_process_as_its_one_subtree() {
+    fn a_leftover_group_shows_its_top_process_as_a_row() {
         let leftover = sample(vec![leftover_top(52143, 0.0), proc(52150, 52143, 96.3)]);
         let order = ordered(&[leftover], SortKey::Cpu);
         assert_eq!(
