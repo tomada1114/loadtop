@@ -96,8 +96,14 @@ removing or narrowing its bullet here:
   asks before a human's recipe, for Claude Code alone and only as spelled; nothing
   stops another tool, or a human's own shell. The known gaps are `env loadtop`, `sh -c`,
   `script`, `cargo r`, `exec`, and any wrapper: each opens the screen past every deny.
+  The `cargo run` denies match only at the end of the command, so `cargo run -p loadtop`
+  followed by another flag (`--release`, `--locked`), `--package loadtop`, and
+  `--bin loadtop` open it too, and the allow-list check does not report `--bin loadtop`,
+  `--package=loadtop`, or `-ploadtop`.
   The known over-deny is `ls target/debug/loadtop`, which `Bash(*/loadtop)` refuses
-  though it opens nothing. A new recipe or test that shows a window, takes focus, raises
+  though it opens nothing; the same pattern refuses any command whose text ends in
+  `/loadtop`, such as `cd` into a checkout named `loadtop` or `git add crates/loadtop`,
+  so an agent runs from the checkout's root and names paths below it. A new recipe or test that shows a window, takes focus, raises
   a prompt, or takes over a terminal is caught only by review.
 - **No gate runs the real terminal loop.** The loop bare `loadtop` opens — raw mode, the
   alternate screen, resize, and restoring the terminal on every way out — runs only when

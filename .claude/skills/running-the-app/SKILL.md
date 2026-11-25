@@ -41,7 +41,6 @@ just logs            # the newest log file's last 50 lines, then exit
 
   ```bash
   cargo run --locked -p loadtop -- --version
-  cargo run --locked -p loadtop -- counter show
   ```
 
   It reads the developer's own data and writes to their log directory: logging starts

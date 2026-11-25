@@ -30,7 +30,7 @@ cd loadtop
 mise trust     # approve mise.toml once (mise asks before using an untrusted config)
 just install   # pinned tools via mise and lefthook's git hook
 just check     # everything the machine can run without a human; takes over no terminal
-cargo run --locked -p loadtop -- counter show   # the tool itself
+cargo run --locked -p loadtop -- --version      # the tool itself
 ```
 
 rustup installs the Rust toolchain `rust-toolchain.toml` names the first time `cargo`
