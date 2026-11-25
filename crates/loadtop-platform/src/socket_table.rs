@@ -12,6 +12,11 @@ use loadtop_core::{ListeningPort, SocketError, SocketTable};
 /// How long `lsof` may take before it is killed and the ports are unavailable.
 const LSOF_TIMEOUT: Duration = Duration::from_secs(2);
 
+/// How long the streams may take to reach their end once `lsof` has been reaped: its
+/// own allowance, so an answer finished just inside [`LSOF_TIMEOUT`] is still read, and
+/// the whole call stays under the two together.
+const READ_GRACE: Duration = Duration::from_millis(200);
+
 /// How often the wait checks whether `lsof` has exited.
 const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
@@ -50,7 +55,7 @@ impl SocketTable for LsofSocketTable {
             .map_err(|_| SocketError::Unavailable)?;
         let streams = drain(child.stdout.take(), child.stderr.take());
         let status = wait_until(&mut child, deadline)?;
-        let (stdout, stderr) = streams.collect(deadline)?;
+        let (stdout, stderr) = streams.collect(READ_GRACE)?;
         match status.code() {
             Some(0) => parse(&stdout),
             Some(1) if stdout.is_empty() && stderr.is_empty() => Ok(vec![]),
@@ -108,10 +113,11 @@ fn drain(stdout: Option<ChildStdout>, stderr: Option<ChildStderr>) -> Drained {
 }
 
 impl Drained {
-    /// Both streams' bytes, waiting no later than `deadline`: a process `lsof` left
+    /// Both streams' bytes, waiting at most `grace` from now: a process `lsof` left
     /// holding a pipe open must not hang the call, so a reader still blocked then is
     /// left to finish on its own.
-    fn collect(self, deadline: Instant) -> Result<(Vec<u8>, Vec<u8>), SocketError> {
+    fn collect(self, grace: Duration) -> Result<(Vec<u8>, Vec<u8>), SocketError> {
+        let deadline = Instant::now() + grace;
         let mut stdout = None;
         let mut stderr = None;
         while stdout.is_none() || stderr.is_none() {
@@ -171,6 +177,43 @@ mod tests {
 
     fn port(pid: u32, port: u16) -> ListeningPort {
         ListeningPort { pid, port }
+    }
+
+    /// Streams whose readers deliver after `delay`, as a reader of a child that only
+    /// just exited does; the sender then stays alive, so a stream never sent times out
+    /// rather than disconnecting.
+    fn drained_after(delay: Duration, stdout: Option<&'static [u8]>) -> Drained {
+        let (sender, receiver) = mpsc::channel();
+        std::thread::spawn(move || {
+            std::thread::sleep(delay);
+            if let Some(bytes) = stdout {
+                let _ = sender.send(Some(Stream::Stdout(bytes.to_vec())));
+            }
+            let _ = sender.send(Some(Stream::Stderr(Vec::new())));
+            std::thread::sleep(Duration::from_secs(5));
+        });
+        Drained { receiver }
+    }
+
+    #[test]
+    fn streams_finishing_after_the_reap_are_still_read_within_the_grace() {
+        let drained = drained_after(Duration::from_millis(50), Some(b"p1\nn*:80\n"));
+        assert_eq!(
+            drained.collect(READ_GRACE),
+            Ok((b"p1\nn*:80\n".to_vec(), Vec::new()))
+        );
+    }
+
+    #[test]
+    fn a_stream_that_never_ends_is_unavailable_once_the_grace_runs_out() {
+        let drained = drained_after(Duration::ZERO, None);
+        let started = Instant::now();
+        assert_eq!(drained.collect(READ_GRACE), Err(SocketError::Unavailable));
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed >= READ_GRACE && elapsed < Duration::from_secs(2),
+            "waited {elapsed:?}"
+        );
     }
 
     #[test]

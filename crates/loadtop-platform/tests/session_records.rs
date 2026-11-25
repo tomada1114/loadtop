@@ -157,3 +157,65 @@ fn a_file_where_the_directory_should_be_is_unreadable() {
     std::fs::write(&sessions, "").unwrap();
     assert_eq!(read_sorted(&sessions), Err(SessionRecordsError::Unreadable));
 }
+
+/// A directory holding one valid record, `52101.json`, beside whatever the test adds.
+fn one_valid_record() -> TempDir {
+    let dir = match tempfile::tempdir() {
+        Ok(dir) => dir,
+        Err(error) => panic!("no temporary directory: {error}"),
+    };
+    let record = dir.path().join("52101.json");
+    if let Err(error) = std::fs::write(&record, r#"{"pid":52101,"entrypoint":"cli"}"#) {
+        panic!("{} could not be written: {error}", record.display());
+    }
+    dir
+}
+
+fn file_pids(dir: &Path) -> Vec<u32> {
+    match read_sorted(dir) {
+        Ok(records) => records.iter().map(|record| record.file_pid).collect(),
+        Err(error) => panic!("the records could not be read: {error:?}"),
+    }
+}
+
+#[test]
+fn a_fifo_named_as_a_record_is_skipped_without_blocking() {
+    let dir = one_valid_record();
+    let fifo = dir.path().join("61000.json");
+    let made = std::process::Command::new("mkfifo")
+        .arg(&fifo)
+        .status()
+        .unwrap();
+    assert!(made.success(), "mkfifo failed: {made}");
+
+    let reader = SessionRecordsDir::new(dir.path().to_path_buf());
+    let (sender, receiver) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = sender.send(reader.read());
+    });
+    let read = receiver
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .unwrap();
+    let pids: Vec<u32> = read.unwrap().iter().map(|record| record.file_pid).collect();
+    assert_eq!(pids, vec![52101]);
+}
+
+#[test]
+fn a_symlink_named_as_a_record_is_skipped() {
+    let dir = one_valid_record();
+    std::os::unix::fs::symlink(dir.path().join("52101.json"), dir.path().join("61000.json"))
+        .unwrap();
+    assert_eq!(file_pids(dir.path()), vec![52101]);
+}
+
+#[test]
+fn a_record_over_64_kib_is_skipped_and_one_at_64_kib_is_read() {
+    let dir = one_valid_record();
+    let padded = |len: usize| {
+        let record = r#"{"pid":1}"#;
+        format!("{record}{}", " ".repeat(len - record.len()))
+    };
+    std::fs::write(dir.path().join("61000.json"), padded(64 * 1024)).unwrap();
+    std::fs::write(dir.path().join("61001.json"), padded(64 * 1024 + 1)).unwrap();
+    assert_eq!(file_pids(dir.path()), vec![52101, 61000]);
+}

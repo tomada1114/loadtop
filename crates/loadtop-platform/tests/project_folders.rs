@@ -27,6 +27,19 @@ fn folder_names_are_read_without_opening_them() {
 }
 
 #[test]
+fn a_file_or_a_symlink_beside_the_folders_is_not_a_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    let folder = dir.path().join("-Users-ann-code-acme-web");
+    std::fs::create_dir(&folder).unwrap();
+    std::fs::write(dir.path().join(".DS_Store"), "").unwrap();
+    std::os::unix::fs::symlink(&folder, dir.path().join("-Users-ann-code-acme-api")).unwrap();
+    assert_eq!(
+        names_in(dir.path()),
+        Ok(vec!["-Users-ann-code-acme-web".to_owned()])
+    );
+}
+
+#[test]
 fn a_missing_directory_holds_no_folders() {
     let dir = tempfile::tempdir().unwrap();
     assert_eq!(names_in(&dir.path().join("projects")), Ok(vec![]));

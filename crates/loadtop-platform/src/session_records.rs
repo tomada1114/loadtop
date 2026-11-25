@@ -1,6 +1,7 @@
 //! Claude Code's session records, read from `~/.claude/sessions/<pid>.json`.
 
-use std::io::ErrorKind;
+use std::fs::DirEntry;
+use std::io::{ErrorKind, Read};
 use std::path::PathBuf;
 
 use loadtop_core::{SessionRecord, SessionRecords, SessionRecordsError};
@@ -8,6 +9,17 @@ use serde_json::{Map, Value};
 
 /// The extension of a session record; the `*.key` files beside them are never opened.
 const RECORD_EXTENSION: &str = ".json";
+
+/// The largest record read; a larger file is skipped, so a stray file cannot grow memory.
+const MAX_RECORD_BYTES: u64 = 64 * 1024;
+
+/// ctime's weekday names, Sunday first; 1970-01-01 was a Thursday.
+const WEEKDAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/// ctime's month names.
+const MONTHS: [&str; 12] = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 /// Session records, read from one directory on every call.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,8 +48,7 @@ impl SessionRecords for SessionRecordsDir {
             let Some(file_pid) = entry.file_name().to_str().and_then(record_file_pid) else {
                 continue;
             };
-            // A file removed since the listing is a session that just ended: skipped.
-            let Ok(bytes) = std::fs::read(entry.path()) else {
+            let Some(bytes) = read_record_file(&entry) else {
                 continue;
             };
             if let Some(record) = parse_record(file_pid, &bytes) {
@@ -46,6 +57,24 @@ impl SessionRecords for SessionRecordsDir {
         }
         Ok(records)
     }
+}
+
+/// A record file's bytes; `None` for anything but a regular file of at most
+/// [`MAX_RECORD_BYTES`] (a symlink, a FIFO that would block every sample, a device) or a
+/// file removed since the listing, which is a session that just ended.
+fn read_record_file(entry: &DirEntry) -> Option<Vec<u8>> {
+    // `DirEntry::metadata` does not follow a symlink.
+    let metadata = entry.metadata().ok()?;
+    if !metadata.is_file() || metadata.len() > MAX_RECORD_BYTES {
+        return None;
+    }
+    let file = std::fs::File::open(entry.path()).ok()?;
+    let mut bytes = Vec::new();
+    // Capped again while reading, in case the file grew since its size was read.
+    file.take(MAX_RECORD_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .ok()?;
+    (u64::try_from(bytes.len()).ok()? <= MAX_RECORD_BYTES).then_some(bytes)
 }
 
 /// The PID a record's file is named after: `<digits>.json`, nothing else.
@@ -86,15 +115,10 @@ fn string_field(fields: &Map<String, Value>, key: &str) -> Option<String> {
     fields.get(key).and_then(Value::as_str).map(str::to_owned)
 }
 
-const WEEKDAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const MONTHS: [&str; 12] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 /// `procStart` as Unix seconds: a ctime-style UTC string,
 /// `<Day> <Mon> <D> <HH>:<MM>:<SS> <YYYY>`, the day of month possibly space-padded
-/// (`Nov  5`). Any other shape, or a date that does not exist, is `None`.
+/// (`Nov  5`). Any other shape, a date that does not exist, or a weekday that is not
+/// that date's is `None`.
 fn parse_proc_start(value: &str) -> Option<u64> {
     let mut parts = value.split_ascii_whitespace();
     let (Some(weekday), Some(month), Some(day), Some(time), Some(year), None) = (
@@ -107,9 +131,6 @@ fn parse_proc_start(value: &str) -> Option<u64> {
     ) else {
         return None;
     };
-    if !WEEKDAYS.contains(&weekday) {
-        return None;
-    }
     let month = MONTHS.iter().position(|name| *name == month)? + 1;
     let month = u64::try_from(month).ok()?;
     let day = number(day, 1..=2)?;
@@ -135,6 +156,10 @@ fn parse_proc_start(value: &str) -> Option<u64> {
         return None;
     }
     let days = days_from_civil(year, month, day);
+    let weekday_of_date = usize::try_from((days + 4) % 7).ok()?;
+    if WEEKDAYS.get(weekday_of_date) != Some(&weekday) {
+        return None;
+    }
     Some(days * 86_400 + hours * 3_600 + minutes * 60 + seconds)
 }
 
@@ -215,6 +240,12 @@ mod tests {
     }
 
     #[test]
+    fn a_weekday_that_is_not_the_dates_is_none() {
+        // 2026-11-20 is a Friday.
+        assert_eq!(parse_proc_start("Mon Nov 20 09:12:03 2026"), None);
+    }
+
+    #[test]
     fn proc_start_of_any_other_shape_is_none() {
         for value in [
             "",
@@ -223,6 +254,8 @@ mod tests {
             "Fri Nov 20 09:12:03",
             "Fri Nov 20 09:12:03 2026 UTC",
             "Fry Nov 20 09:12:03 2026",
+            "Mon Nov 20 09:12:03 2026",
+            "Sat Nov 20 09:12:03 2026",
             "Fri November 20 09:12:03 2026",
             "Fri Nov 020 09:12:03 2026",
             "Fri Nov 0 09:12:03 2026",

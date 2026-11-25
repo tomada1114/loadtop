@@ -31,6 +31,14 @@ impl ProjectFolders for ProjectFoldersDir {
         let mut names = Vec::new();
         for entry in entries {
             let entry = entry.map_err(|_| ProjectFoldersError::Unreadable)?;
+            // Folders only, and not a symlink to one: `file_type` does not follow links.
+            let is_dir = entry
+                .file_type()
+                .map_err(|_| ProjectFoldersError::Unreadable)?
+                .is_dir();
+            if !is_dir {
+                continue;
+            }
             if let Some(name) = folder_name(entry.file_name()) {
                 names.push(name);
             }
